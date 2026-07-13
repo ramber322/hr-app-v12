@@ -554,4 +554,17 @@
   font-size: 14px;
 }
 
+.job-applicants,
+.job-deadline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.job-applicants svg,
+.job-deadline svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
 

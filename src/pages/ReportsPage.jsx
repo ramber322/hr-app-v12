@@ -6,6 +6,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import "../styles/ReportsPage.css";
+ 
+import { ReportsChartIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
 
 // Chart.js imports
 import {
@@ -541,7 +543,11 @@ export default function ReportsPage() {
       height: 250px;
       position: relative;
     }
-
+.icon-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
     .loading-state {
       text-align: center;
       padding: 60px;
@@ -553,6 +559,15 @@ export default function ReportsPage() {
         grid-template-columns: repeat(2, 1fr);
       }
     }
+      h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+h3 svg {
+  flex-shrink: 0;
+}
 
     @media (max-width: 768px) {
       .reports-container { padding: 16px; padding-top: 80px; }
@@ -582,14 +597,17 @@ export default function ReportsPage() {
         <style>{styles}</style>
 
         <div className="page-header">
-          <h1>📈 Reports</h1>
+         <h1 className="icon-title">
+  <ReportsChartIcon size={28} />
+  Reports
+</h1>
           <p>Generate and export recruitment reports</p>
           <div className="export-buttons">
             <button className="export-btn pdf" onClick={exportPDF}>
-              📄 Export as PDF
+              <PdfIcon size={23}/> Export as PDF
             </button>
             <button className="export-btn excel" onClick={exportExcel}>
-              📊 Export as Excel
+              <ExcelIcon size={23}/> Export as Excel
             </button>
           </div>
         </div>
@@ -619,7 +637,7 @@ export default function ReportsPage() {
           {/* Monthly Applications */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>📊 Applications Per Month</h3>
+              <h3><ReportsChartIcon/> Applications Per Month</h3>
             </div>
             <div className="card-body">
               <div className="chart-container">
@@ -631,7 +649,7 @@ export default function ReportsPage() {
           {/* Status Breakdown */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>📋 Status Breakdown</h3>
+              <h3><PieChartIcon/> Status Breakdown</h3>
             </div>
             <div className="card-body">
               <div className="chart-container">
@@ -645,7 +663,7 @@ export default function ReportsPage() {
         <div className="dashboard-grid">
           <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
             <div className="card-header">
-              <h3>🏢 Applications By Department</h3>
+              <h3><DocumentColoredIcon/> Applications By Department</h3>
             </div>
             <div className="card-body">
               <div className="chart-container" style={{ height: '300px' }}>

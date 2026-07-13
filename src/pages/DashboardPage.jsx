@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/DashboardPage.css";
-import { ConfettiIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, BriefcaseIcon, DocumentListIcon } from "../components/icons/CustomIcons";
+import { CalendarColoredIcon, ClockIcon, DocumentColoredIcon, GraphChartIcon, ConfettiIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, BriefcaseIcon, DocumentListIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
 
 // Chart.js imports
 import {
@@ -312,7 +312,7 @@ export default function DashboardPage() {
     title: 'Open Jobs',
     value: stats.openJobs,
     change: '-0.8%',
-    icon: '📌',
+    icon: ColoredPushPinIcon,
     color: '#ef4444',
     bgColor: '#fef2f2',
   },
@@ -638,6 +638,11 @@ export default function DashboardPage() {
     .view-more-btn:hover {
       text-decoration: underline;
     }
+      .icon-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
     @media (max-width: 1024px) {
       .stats-grid {
@@ -675,7 +680,7 @@ export default function DashboardPage() {
         <style>{styles}</style>
 
         <div className="dashboard-header">
-          <h1>👋 Welcome Back, Admin!</h1>
+          <h1>Welcome Back, Admin!</h1>
           <p>Here's your hiring summary for this month.</p>
         </div>
 
@@ -716,7 +721,10 @@ export default function DashboardPage() {
           {/* Hiring Trends */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>📊 Hiring Trends</h3>
+              <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+  <GraphChartIcon size={24} />
+  Hiring Trends
+</h3>
             </div>
             <div className="card-body">
               <div className="chart-container">
@@ -728,7 +736,10 @@ export default function DashboardPage() {
           {/* Application Status Breakdown */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>📋 Application Status</h3>
+            <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+  <DocumentColoredIcon size={24} />
+  Application Status
+</h3>
             </div>
             <div className="card-body">
               <div className="status-list">
@@ -769,7 +780,10 @@ export default function DashboardPage() {
           {/* Recent Activity */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>🕐 Recent Activity</h3>
+             <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+  <ClockIcon size={22} />
+  Recent Activity
+</h3>
               <span className="view-more-btn" onClick={() => navigate('/hr/applications')}>
                 View more →
               </span>
@@ -797,7 +811,10 @@ export default function DashboardPage() {
           {/* Calendar */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>📅 {monthNames[currentMonth.getMonth()]}, {currentMonth.getFullYear()}</h3>
+             <h3 className="icon-title">
+  <CalendarColoredIcon size={22} />
+  {monthNames[currentMonth.getMonth()]}, {currentMonth.getFullYear()}
+</h3>
             </div>
             <div className="card-body">
               <div className="calendar-header">

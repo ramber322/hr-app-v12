@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
-import { WelcomeIcon, CalendarIcon, MyApplicationsIcon } from "../components/icons/CustomIcons";
+import { TimeSandIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
 
 
 export default function DashboardApplicant() {
@@ -388,6 +388,26 @@ export default function DashboardApplicant() {
       padding: 60px;
       color: #6c757d;
     }
+      .stat-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+  .stat-icon svg {
+  width: 25px;
+  height: 25px;
+}
+
+h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+h3 svg {
+  width: 20px;
+  height: 20px;
+}
 
     @media (max-width: 768px) {
       .dashboard-container { padding: 16px; padding-top: 80px; }
@@ -416,12 +436,11 @@ export default function DashboardApplicant() {
 
        <div className="dashboard-header">
   <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-    <WelcomeIcon color = {'purple'} size={40} /> 
     Welcome back, {userName}
   </h1>
   <div className="date-display">
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-    <CalendarIcon color = {'purple'} size={40} />
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+    <CalendarColoredIcon  size={30} />
     {todayDate}
   </span>
 </div>
@@ -429,12 +448,12 @@ export default function DashboardApplicant() {
 
         <div className="stats-cards">
           <div className="stat-card">
-            <span className="stat-icon">📋</span>
+            <span className="stat-icon"><DocumentApplicantDashboardIcon/></span>
             <span className="stat-number">{stats.total}</span>
             <span className="stat-label">Total Applications</span>
           </div>
           <div className="stat-card">
-            <span className="stat-icon">⏳</span>
+            <span className="stat-icon"><TimeSandIcon size={20} /></span>
             <span className="stat-number">{stats.pending}</span>
             <span className="stat-label">Pending Review</span>
           </div>
@@ -454,7 +473,7 @@ export default function DashboardApplicant() {
           {/* Recent Applications */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3>📌 Recent Applications</h3>
+              <h3><ColoredPushPinIcon/> Recent Applications</h3>
               <span className="view-all" onClick={() => navigate('/applicant/applications')}>
                 View All →
               </span>

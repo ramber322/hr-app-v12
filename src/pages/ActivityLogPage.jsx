@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/ActivityLogPage.css";
+import { ActivityLogDocument } from "../components/icons/CustomIcons";
 
 export default function ActivityLogPage() {
   const navigate = useNavigate();
@@ -402,7 +403,9 @@ export default function ActivityLogPage() {
         <style>{styles}</style>
 
         <div className="page-header">
-          <h1>📋 Activity Log</h1>
+         <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+  <ActivityLogDocument  /> Activity Log
+</h1>
           <p>Track all actions within the system</p>
         </div>
 

@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import { getJobPostings } from "../services/jobService";
 import '../styles/BrowseJobsPage.css';
+import { CalendarColoredIcon } from "../components/icons/CustomIcons";
 
 // =========================
 // PYTHON API URL
@@ -779,7 +780,7 @@ export default function BrowseJobsPage() {
                   <span className="job-detail-item">Item No: {job.item_no}</span>
                 </div>
                 <div className="job-deadline">
-                  📅 Closing Date: {job.closing_date}
+                  <CalendarColoredIcon /> Closing Date: {job.closing_date}
                 </div>
                 <div className="button-group">
                   <button 

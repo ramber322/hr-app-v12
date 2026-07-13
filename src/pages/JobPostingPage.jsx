@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { createJobPosting, getJobPostings, updateJobStatuses } from "../services/jobService";
 import '/src/styles/JobPostingPage.css';
+import { CalendarIcon, CalendarColoredIcon, DocumentMonoIcon } from "../components/icons/CustomIcons";
 
 
 // =========================
@@ -415,10 +416,10 @@ export default function JobPostingPage() {
                   <span className="job-detail-item">Item No: {job.item_no}</span>
                 </div>
                 <div className="job-applicants">
-                  📋 {job.applicants_count || 0} applicant(s) applied
+                  <DocumentMonoIcon/> {job.applicants_count || 0} applicant(s) applied
                 </div>
                 <div className="job-deadline">
-                  📅 Closing Date: {job.closing_date}
+                  <CalendarColoredIcon  /> Closing Date: {job.closing_date}
                 </div>
                 <div className="job-card-actions">
                   <button className="view-btn" onClick={() => setShowDetails(job)}>
