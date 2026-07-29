@@ -30,16 +30,24 @@ export default function JobCandidatesPage() {
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [documentUrls, setDocumentUrls] = useState({});
 
+  const [compareMode, setCompareMode] = useState(false);
+  const [selectedCompareCandidates, setSelectedCompareCandidates] = useState([]);
+  const [showCompareModal, setShowCompareModal] = useState(false);
+
+  // Store job requirements for comparison - FIXED with correct column names
+  const [jobRequirements, setJobRequirements] = useState({
+    education: 0,
+    eligibility: '',
+    training: 0,
+    workExperience: 0,
+  });
+
   useEffect(() => {
     loadJobAndCandidates();
   }, [jobId]);
 
-  // =============================================
-  // GET DOCUMENT URL - FINDS FILE BY LISTING FOLDER
-  // =============================================
   const getDocumentUrl = async (jobId, applicantId, docType) => {
     try {
-      // List all files in the applicant's folder
       const { data, error } = await supabase.storage
         .from('applicant_docs')
         .list(`${jobId}/${applicantId}`);
@@ -54,7 +62,6 @@ export default function JobCandidatesPage() {
         return null;
       }
 
-      // Find the file that starts with the docType (e.g., "pds", "transcript", "performanceRating")
       const file = data.find(f => f.name.startsWith(docType));
 
       if (!file) {
@@ -62,7 +69,6 @@ export default function JobCandidatesPage() {
         return null;
       }
 
-      // Get the public URL for the file
       const filePath = `${jobId}/${applicantId}/${file.name}`;
       const { data: urlData } = supabase.storage
         .from('applicant_docs')
@@ -76,12 +82,8 @@ export default function JobCandidatesPage() {
     }
   };
 
-  // =============================================
-  // VIEW DOCUMENT - WITH DOWNLOAD FOR EXCEL/WORD
-  // =============================================
   const viewDocument = async (jobId, applicantId, docType, docName) => {
     try {
-      // List files in the folder
       const { data, error } = await supabase.storage
         .from('applicant_docs')
         .list(`${jobId}/${applicantId}`);
@@ -91,7 +93,6 @@ export default function JobCandidatesPage() {
         return;
       }
 
-      // Find all files that start with the docType
       const matchingFiles = data.filter(f => 
         f.name.toLowerCase().startsWith(docType.toLowerCase())
       );
@@ -102,25 +103,20 @@ export default function JobCandidatesPage() {
         return;
       }
 
-      // Sort by creation date (newest first)
       const sortedFiles = matchingFiles.sort((a, b) => {
         return new Date(b.created_at) - new Date(a.created_at);
       });
 
-      // Get the most recent file
       const file = sortedFiles[0];
       const filePath = `${jobId}/${applicantId}/${file.name}`;
       const { data: urlData } = supabase.storage
         .from('applicant_docs')
         .getPublicUrl(filePath);
 
-      // Check file extension
       const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
       const isWord = file.name.endsWith('.docx') || file.name.endsWith('.doc');
-      const isPDF = file.name.endsWith('.pdf');
 
       if (isExcel || isWord) {
-        // For Excel/Word files: trigger download directly
         const link = document.createElement('a');
         link.href = urlData.publicUrl;
         link.download = file.name;
@@ -128,7 +124,6 @@ export default function JobCandidatesPage() {
         link.click();
         document.body.removeChild(link);
       } else {
-        // For PDF and other viewable files: open in new tab
         window.open(urlData.publicUrl, '_blank');
       }
     } catch (error) {
@@ -149,6 +144,14 @@ export default function JobCandidatesPage() {
       
       if (jobError) throw jobError;
       setJob(jobData);
+      
+      // FIXED: Use correct column names from your table
+      setJobRequirements({
+        education: parseInt(jobData?.required_education) || 0,
+        eligibility: jobData?.required_eligibility || '',
+        training: parseInt(jobData?.required_training) || 0,
+        workExperience: parseInt(jobData?.required_work_experience) || 0,
+      });
       
       const { data: applicationsData, error: appsError } = await supabase
         .from('applications')
@@ -179,7 +182,6 @@ export default function JobCandidatesPage() {
         applicantsMap[applicant.id] = applicant;
       });
       
-      // Fetch document URLs for each application
       const docUrls = {};
       for (const app of applicationsData) {
         const appId = app.id;
@@ -197,7 +199,7 @@ export default function JobCandidatesPage() {
       }
       setDocumentUrls(docUrls);
       
-      const candidatesWithRank = applicationsData.map((app, index) => {
+      const candidatesWithoutRank = applicationsData.map((app) => {
         const applicant = applicantsMap[app.applicant_id] || {};
         const aiData = app.ai_explanation || {};
         const breakdown = aiData.breakdown || {};
@@ -281,7 +283,6 @@ export default function JobCandidatesPage() {
           status: app.status || 'PENDING',
           docs_submitted: app.docs_submitted || {},
           ai_match_score: app.ai_match_score || 0,
-          rank: index + 1,
           education: extractEducation(breakdown),
           eligibility: extractEligibility(breakdown),
           training: extractTraining(breakdown),
@@ -299,6 +300,13 @@ export default function JobCandidatesPage() {
         };
       });
       
+      candidatesWithoutRank.sort((a, b) => (b.ai_match_score || 0) - (a.ai_match_score || 0));
+      
+      const candidatesWithRank = candidatesWithoutRank.map((candidate, index) => ({
+        ...candidate,
+        rank: index + 1
+      }));
+      
       setCandidates(candidatesWithRank);
       
     } catch (error) {
@@ -307,6 +315,13 @@ export default function JobCandidatesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // FIXED: Clean education text - removes "(Required: ...)" from display
+  const cleanEducationText = (edu) => {
+    if (!edu || edu === 'N/A') return 'N/A';
+    const cleaned = edu.replace(/\s*\([^)]*\)/g, '').trim();
+    return cleaned || edu;
   };
 
   const extractEducation = (breakdown) => {
@@ -331,7 +346,7 @@ export default function JobCandidatesPage() {
   const extractTraining = (breakdown) => {
     if (breakdown['Training Hours']) {
       const train = breakdown['Training Hours'];
-      return `${train.actual || 0} hours (Required: ${train.required || 0})`;
+      return `${train.actual || 0}/${train.required || 0} hrs`;
     }
     return 'N/A';
   };
@@ -339,7 +354,7 @@ export default function JobCandidatesPage() {
   const extractExperience = (breakdown) => {
     if (breakdown.Experience) {
       const exp = breakdown.Experience;
-      return `${exp.actual || 0} years (Required: ${exp.required || 0})`;
+      return `${exp.actual || 0} yrs`;
     }
     return 'N/A';
   };
@@ -400,9 +415,106 @@ export default function JobCandidatesPage() {
     return allComplete;
   };
 
+  const toggleCompare = (candidate) => {
+    if (compareMode) {
+      const index = selectedCompareCandidates.findIndex(c => c.id === candidate.id);
+      if (index === -1) {
+        if (selectedCompareCandidates.length >= 2) {
+          alert('You can only compare up to 2 candidates at a time.');
+          return;
+        }
+        setSelectedCompareCandidates([...selectedCompareCandidates, candidate]);
+      } else {
+        setSelectedCompareCandidates(selectedCompareCandidates.filter(c => c.id !== candidate.id));
+      }
+    } else {
+      setCompareMode(true);
+      setSelectedCompareCandidates([candidate]);
+    }
+  };
+
+  const clearCompareSelection = () => {
+    setCompareMode(false);
+    setSelectedCompareCandidates([]);
+    setShowCompareModal(false);
+  };
+
+  const openCompareModal = () => {
+    if (selectedCompareCandidates.length === 2) {
+      setShowCompareModal(true);
+    } else {
+      alert('Please select 2 candidates to compare.');
+    }
+  };
+
   // =============================================
-  // EXPORT SHORTLIST TO PDF
+  // FIXED: HUMAN-READABLE COMPARISON SUMMARY
   // =============================================
+  const getComparisonSummary = (candidateA, candidateB) => {
+    const aScore = candidateA.ai_match_score || 0;
+    const bScore = candidateB.ai_match_score || 0;
+    const higher = aScore >= bScore ? candidateA : candidateB;
+    const lower = aScore >= bScore ? candidateB : candidateA;
+    const reasons = [];
+
+    // FIXED: Education - compare by actual education level, not by score
+    const aEdu = cleanEducationText(candidateA.education);
+    const bEdu = cleanEducationText(candidateB.education);
+    if (aEdu !== bEdu && aEdu !== 'N/A' && bEdu !== 'N/A') {
+      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+      const aLevel = eduLevels.indexOf(aEdu);
+      const bLevel = eduLevels.indexOf(bEdu);
+      
+      if (aLevel > bLevel) {
+        reasons.push(`Higher education (${aEdu} vs ${bEdu})`);
+      } else if (bLevel > aLevel) {
+        reasons.push(`Higher education (${bEdu} vs ${aEdu})`);
+      }
+    }
+
+    // Eligibility - only show if the higher has eligibility
+    if (higher.eligibility !== 'None' && higher.eligibility !== 'N/A') {
+      reasons.push(`Has CSC ${higher.eligibility} eligibility`);
+    }
+
+    // Training - show the higher has more
+    const aTrain = parseInt(candidateA.training) || 0;
+    const bTrain = parseInt(candidateB.training) || 0;
+    if (aTrain !== bTrain && aTrain > 0 && bTrain > 0) {
+      const higherTrain = Math.max(aTrain, bTrain);
+      const lowerTrain = Math.min(aTrain, bTrain);
+      reasons.push(`More training hours (${higherTrain} vs ${lowerTrain})`);
+    }
+
+    // Experience - show the higher has more
+    const aExp = parseInt(candidateA.experience) || 0;
+    const bExp = parseInt(candidateB.experience) || 0;
+    if (aExp !== bExp && aExp > 0 && bExp > 0) {
+      const higherExp = Math.max(aExp, bExp);
+      const lowerExp = Math.min(aExp, bExp);
+      reasons.push(`More experience (${higherExp} vs ${lowerExp} years)`);
+    }
+
+    // Requirements met
+    const aMet = candidateA.explanation?.requirements_met || '0/0';
+    const bMet = candidateB.explanation?.requirements_met || '0/0';
+    if (aMet !== bMet) {
+      const higherMet = aScore >= bScore ? aMet : bMet;
+      const lowerMet = aScore >= bScore ? bMet : aMet;
+      reasons.push(`More requirements met (${higherMet} vs ${lowerMet})`);
+    }
+
+    if (reasons.length === 0) {
+      return `Both candidates have similar qualifications.`;
+    }
+
+    let summary = `${higher.applicant_name} is the stronger candidate because:\n`;
+    reasons.forEach((reason) => {
+      summary += `✓ ${reason}\n`;
+    });
+    return summary;
+  };
+
   const exportShortlistPDF = () => {
     const shortlisted = candidates.filter(c => 
       c.status === 'SHORTLISTED' || c.status === 'QUALIFIED'
@@ -451,7 +563,7 @@ export default function JobCandidatesPage() {
     const tableData = shortlisted.map((c, index) => [
       index + 1,
       c.applicant_name,
-      c.education || 'N/A',
+      cleanEducationText(c.education) || 'N/A',
       c.eligibility || 'N/A',
       `${c.ai_match_score || 0}%`
     ]);
@@ -515,9 +627,6 @@ export default function JobCandidatesPage() {
     doc.save(`Shortlist_${job?.position_title?.replace(/\s+/g, '_') || 'Candidates'}_${new Date().toISOString().split('T')[0]}.pdf`);
   };
 
-  // =============================================
-  // UPDATE CANDIDATE STATUS WITH NOTIFICATIONS
-  // =============================================
   const updateCandidateStatus = async (applicationId, newStatus) => {
     if (!window.confirm(`Change status to "${newStatus}"?`)) return;
     
@@ -574,7 +683,6 @@ export default function JobCandidatesPage() {
     }
   };
 
-  // Filter logic with documents filter
   const filteredCandidates = candidates
     .filter((c) => {
       const matchesSearch = c.applicant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -729,7 +837,46 @@ export default function JobCandidatesPage() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {compareMode && (
+                  <>
+                    <span style={{ fontSize: '13px', color: '#6c757d' }}>
+                      Selected {selectedCompareCandidates.length}/2 candidates
+                    </span>
+                    <button 
+                      onClick={clearCompareSelection}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#e9ecef',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      ✕ Clear
+                    </button>
+                    {selectedCompareCandidates.length === 2 && (
+                      <button 
+                        onClick={openCompareModal}
+                        style={{
+                          padding: '8px 16px',
+                          background: '#4f46e5',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          fontSize: '13px'
+                        }}
+                      >
+                        📊 Compare
+                      </button>
+                    )}
+                  </>
+                )}
+              </div>
               <button 
                 onClick={exportShortlistPDF}
                 style={{
@@ -774,6 +921,7 @@ export default function JobCandidatesPage() {
                     filteredCandidates.map((candidate) => {
                       const statusStyle = getStatusColor(candidate.status);
                       const docsComplete = checkDocumentsComplete(candidate.docs_submitted, job?.required_docs);
+                      const isSelected = selectedCompareCandidates.some(c => c.id === candidate.id);
 
                       return (
                         <tr key={candidate.id}>
@@ -826,15 +974,32 @@ export default function JobCandidatesPage() {
                             </span>
                           </td>
                           <td>
-                            <button
-                              className="view-btn"
-                              onClick={() => {
-                                setSelectedApplication(candidate);
-                                setShowDetailsModal(true);
-                              }}
-                            >
-                              View
-                            </button>
+                            <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+                              <button
+                                className="view-btn"
+                                onClick={() => {
+                                  setSelectedApplication(candidate);
+                                  setShowDetailsModal(true);
+                                }}
+                                style={{ padding: '4px 8px', fontSize: '11px' }}
+                              >
+                                View
+                              </button>
+                              <button
+                                onClick={() => toggleCompare(candidate)}
+                                style={{
+                                  padding: '4px 8px',
+                                  fontSize: '11px',
+                                  background: isSelected ? '#4f46e5' : '#e9ecef',
+                                  color: isSelected ? 'white' : '#4a5568',
+                                  border: isSelected ? 'none' : '1px solid #dee2e6',
+                                  borderRadius: '4px',
+                                  cursor: 'pointer'
+                                }}
+                              >
+                                {isSelected ? '✓ Selected' : '📊 Compare'}
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -908,7 +1073,7 @@ export default function JobCandidatesPage() {
         </div>
       )}
 
-      {/* Application Details Modal - WITH DOCUMENT VIEWING */}
+      {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (
         <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
@@ -927,113 +1092,110 @@ export default function JobCandidatesPage() {
                 </div>
               </div>
 
-             <div className="detail-section">
-  <h4>📄 Submitted Documents</h4>
-  <ul className="docs-list">
-    {/* PDS - Always required */}
-    <li>
-      {selectedApplication.docs_submitted?.pds ? (
-        <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
-      ) : (
-        <span style={{ color: '#ef4444', fontSize: '14px', marginRight: '4px' }}>✕</span>
-      )}
-      Personal Data Sheet (PDS)
-      {selectedApplication.docs_submitted?.pds && (
-        <button 
-          className="view-doc-btn"
-          onClick={() => viewDocument(
-            selectedApplication.job_id,
-            selectedApplication.applicant_id,
-            'pds',
-            'PDS'
-          )}
-          style={{
-            marginLeft: '10px',
-            padding: '2px 10px',
-            background: '#4f46e5',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '11px',
-          }}
-        >
-          📎 View
-        </button>
-      )}
-    </li>
-    
-    {/* Transcript - Only if required by job */}
-    {job?.required_docs?.transcriptRecords && (
-      <li>
-        {selectedApplication.docs_submitted?.transcript ? (
-          <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
-        ) : (
-          <span style={{ color: '#ef4444', fontSize: '14px', marginRight: '4px' }}>✕</span>
-        )}
-        Transcript of Records
-        {selectedApplication.docs_submitted?.transcript && (
-          <button 
-            className="view-doc-btn"
-            onClick={() => viewDocument(
-              selectedApplication.job_id,
-              selectedApplication.applicant_id,
-              'transcript',
-              'Transcript'
-            )}
-            style={{
-              marginLeft: '10px',
-              padding: '2px 10px',
-              background: '#4f46e5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '11px',
-            }}
-          >
-            📎 View
-          </button>
-        )}
-      </li>
-    )}
-    
-    {/* Performance Rating - Only if required by job */}
-    {job?.required_docs?.performanceRating && (
-      <li>
-        {selectedApplication.docs_submitted?.performanceRating ? (
-          <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
-        ) : (
-          <span style={{ color: '#ef4444', fontSize: '22px', marginLeft: '4px' }}>✕</span>
-        )}
-        Performance Rating
-        {selectedApplication.docs_submitted?.performanceRating && (
-          <button 
-            className="view-doc-btn"
-            onClick={() => viewDocument(
-              selectedApplication.job_id,
-              selectedApplication.applicant_id,
-              'performanceRating',
-              'Performance Rating'
-            )}
-            style={{
-              marginLeft: '10px',
-              padding: '2px 10px',
-              background: '#4f46e5',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '11px',
-            }}
-          >
-            📎 View
-          </button>
-        )}
-      </li>
-    )}
-  </ul>
-</div>
+              <div className="detail-section">
+                <h4>📄 Submitted Documents</h4>
+                <ul className="docs-list">
+                  <li>
+                    {selectedApplication.docs_submitted?.pds ? (
+                      <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
+                    ) : (
+                      <span style={{ color: '#ef4444', fontSize: '14px', marginRight: '4px' }}>✕</span>
+                    )}
+                    Personal Data Sheet (PDS)
+                    {selectedApplication.docs_submitted?.pds && (
+                      <button 
+                        className="view-doc-btn"
+                        onClick={() => viewDocument(
+                          selectedApplication.job_id,
+                          selectedApplication.applicant_id,
+                          'pds',
+                          'PDS'
+                        )}
+                        style={{
+                          marginLeft: '10px',
+                          padding: '2px 10px',
+                          background: '#4f46e5',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '4px',
+                          cursor: 'pointer',
+                          fontSize: '11px',
+                        }}
+                      >
+                        📎 View
+                      </button>
+                    )}
+                  </li>
+                  
+                  {job?.required_docs?.transcriptRecords && (
+                    <li>
+                      {selectedApplication.docs_submitted?.transcript ? (
+                        <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
+                      ) : (
+                        <span style={{ color: '#ef4444', fontSize: '14px', marginRight: '4px' }}>✕</span>
+                      )}
+                      Transcript of Records
+                      {selectedApplication.docs_submitted?.transcript && (
+                        <button 
+                          className="view-doc-btn"
+                          onClick={() => viewDocument(
+                            selectedApplication.job_id,
+                            selectedApplication.applicant_id,
+                            'transcript',
+                            'Transcript'
+                          )}
+                          style={{
+                            marginLeft: '10px',
+                            padding: '2px 10px',
+                            background: '#4f46e5',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                          }}
+                        >
+                          📎 View
+                        </button>
+                      )}
+                    </li>
+                  )}
+                  
+                  {job?.required_docs?.performanceRating && (
+                    <li>
+                      {selectedApplication.docs_submitted?.performanceRating ? (
+                        <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
+                      ) : (
+                        <span style={{ color: '#ef4444', fontSize: '22px', marginLeft: '4px' }}>✕</span>
+                      )}
+                      Performance Rating
+                      {selectedApplication.docs_submitted?.performanceRating && (
+                        <button 
+                          className="view-doc-btn"
+                          onClick={() => viewDocument(
+                            selectedApplication.job_id,
+                            selectedApplication.applicant_id,
+                            'performanceRating',
+                            'Performance Rating'
+                          )}
+                          style={{
+                            marginLeft: '10px',
+                            padding: '2px 10px',
+                            background: '#4f46e5',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '11px',
+                          }}
+                        >
+                          📎 View
+                        </button>
+                      )}
+                    </li>
+                  )}
+                </ul>
+              </div>
 
               <div className="detail-section">
                 <h4>Qualifications</h4>
@@ -1090,6 +1252,235 @@ export default function JobCandidatesPage() {
                     📅 Schedule Interview
                   </button>
                 )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* COMPARE CANDIDATES MODAL */}
+      {showCompareModal && selectedCompareCandidates.length === 2 && (
+        <div className="modal-overlay" onClick={() => setShowCompareModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
+            <div className="modal-header">
+              <h3>📊 Compare Candidates</h3>
+              <button className="close-modal" onClick={() => setShowCompareModal(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr>
+                      <th style={{ padding: '12px', textAlign: 'left', background: '#f8f9fa', borderBottom: '2px solid #e9ecef' }}>Criteria</th>
+                      <th style={{ padding: '12px', textAlign: 'center', background: '#f8f9fa', borderBottom: '2px solid #e9ecef', minWidth: '200px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#1a1f36' }}>{selectedCompareCandidates[0].applicant_name}</div>
+                        <div style={{ fontSize: '14px', color: '#4f46e5' }}>Rank #{selectedCompareCandidates[0].rank} • {selectedCompareCandidates[0].ai_match_score}%</div>
+                      </th>
+                      <th style={{ padding: '12px', textAlign: 'center', background: '#f8f9fa', borderBottom: '2px solid #e9ecef', minWidth: '200px' }}>
+                        <div style={{ fontWeight: 'bold', color: '#1a1f36' }}>{selectedCompareCandidates[1].applicant_name}</div>
+                        <div style={{ fontSize: '14px', color: '#6c757d' }}>Rank #{selectedCompareCandidates[1].rank} • {selectedCompareCandidates[1].ai_match_score}%</div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                   <tr>
+  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Score</td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    <span style={{ 
+      background: getScoreBg(selectedCompareCandidates[0].ai_match_score),
+      color: getScoreColor(selectedCompareCandidates[0].ai_match_score),
+      padding: '4px 12px',
+      borderRadius: '20px',
+      fontWeight: '600'
+    }}>
+      {selectedCompareCandidates[0].ai_match_score}%
+    </span>
+  </td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    <span style={{ 
+      background: getScoreBg(selectedCompareCandidates[1].ai_match_score),
+      color: getScoreColor(selectedCompareCandidates[1].ai_match_score),
+      padding: '4px 12px',
+      borderRadius: '20px',
+      fontWeight: '600'
+    }}>
+      {selectedCompareCandidates[1].ai_match_score}%
+    </span>
+  </td>
+</tr>
+
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Requirements Met</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[0].explanation?.requirements_met || '0/0'}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[1].explanation?.requirements_met || '0/0'}
+                      </td>
+                    </tr>
+
+             {/* Education Row - FIXED */}
+<tr>
+  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Education</td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {cleanEducationText(selectedCompareCandidates[0].education)}
+    {(() => {
+      const edu = selectedCompareCandidates[0].education || '';
+      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+      const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
+      const requiredLevel = jobRequirements.education || 0;
+      if (requiredLevel === 0) return ' (Not Required)';
+      return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
+    })()}
+  </td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {cleanEducationText(selectedCompareCandidates[1].education)}
+    {(() => {
+      const edu = selectedCompareCandidates[1].education || '';
+      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+      const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
+      const requiredLevel = jobRequirements.education || 0;
+      if (requiredLevel === 0) return ' (Not Required)';
+      return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
+    })()}
+  </td>
+</tr>
+
+        {/* Eligibility Row - FIXED */}
+<tr>
+  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Eligibility</td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {selectedCompareCandidates[0].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
+    {(() => {
+      const actual = selectedCompareCandidates[0].eligibility || 'None';
+      const required = jobRequirements.eligibility;
+      // Check all possible "not required" cases
+      if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
+        return ' (Not Required)';
+      }
+      return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
+    })()}
+  </td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {selectedCompareCandidates[1].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
+    {(() => {
+      const actual = selectedCompareCandidates[1].eligibility || 'None';
+      const required = jobRequirements.eligibility;
+      if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
+        return ' (Not Required)';
+      }
+      return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
+    })()}
+  </td>
+</tr>
+
+                   <tr>
+  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Training</td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {selectedCompareCandidates[0].training || 'N/A'}
+    {(() => {
+      const training = selectedCompareCandidates[0].training || '';
+      const match = training.match(/(\d+)\s*\/\s*(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = parseInt(match[2]);
+        if (required === 0) return ' (Not Required)';
+        return actual >= required ? ' ✅' : ' ❌';
+      }
+      return ' (Not Required)';
+    })()}
+  </td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {selectedCompareCandidates[1].training || 'N/A'}
+    {(() => {
+      const training = selectedCompareCandidates[1].training || '';
+      const match = training.match(/(\d+)\s*\/\s*(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = parseInt(match[2]);
+        if (required === 0) return ' (Not Required)';
+        return actual >= required ? ' ✅' : ' ❌';
+      }
+      return ' (Not Required)';
+    })()}
+  </td>
+</tr>
+
+                  {/* Experience Row - FIXED */}
+<tr>
+  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Experience</td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {selectedCompareCandidates[0].experience || 'N/A'}
+    {(() => {
+      const exp = selectedCompareCandidates[0].experience || '';
+      const match = exp.match(/(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = jobRequirements.workExperience || 0;
+        if (required === 0) return ' (Not Required)';
+        return actual >= required ? ' ✅' : ' ❌';
+      }
+      return ' (Not Required)';
+    })()}
+  </td>
+  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+    {selectedCompareCandidates[1].experience || 'N/A'}
+    {(() => {
+      const exp = selectedCompareCandidates[1].experience || '';
+      const match = exp.match(/(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = jobRequirements.workExperience || 0;
+        if (required === 0) return ' (Not Required)';
+        return actual >= required ? ' ✅' : ' ❌';
+      }
+      return ' (Not Required)';
+    })()}
+  </td>
+</tr>
+
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Status</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        <span className="status-badge" style={{
+                          backgroundColor: getStatusColor(selectedCompareCandidates[0].status).bg,
+                          color: getStatusColor(selectedCompareCandidates[0].status).color,
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px'
+                        }}>
+                          {getStatusColor(selectedCompareCandidates[0].status).label}
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        <span className="status-badge" style={{
+                          backgroundColor: getStatusColor(selectedCompareCandidates[1].status).bg,
+                          color: getStatusColor(selectedCompareCandidates[1].status).color,
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontSize: '12px'
+                        }}>
+                          {getStatusColor(selectedCompareCandidates[1].status).label}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div style={{ marginTop: '20px', padding: '16px', background: '#f8f9fa', borderRadius: '10px' }}>
+                <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#1a1f36' }}>
+                  📊 Comparison Summary:
+                </h4>
+                <div style={{ fontSize: '14px', color: '#4a5568', whiteSpace: 'pre-line' }}>
+                  {getComparisonSummary(selectedCompareCandidates[0], selectedCompareCandidates[1])}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '20px' }}>
+                <button className="close-btn" onClick={() => setShowCompareModal(false)} style={{ flex: 1, padding: '10px', background: 'white', border: '1px solid #dee2e6', borderRadius: '8px', cursor: 'pointer' }}>
+                  Close
+                </button>
               </div>
             </div>
           </div>
