@@ -14,6 +14,7 @@ import CandidatePage from "./pages/CandidatePage";
 import JobCandidatesPage from "./pages/JobCandidatesPage";
 import ReportsPage from "./pages/ReportsPage";
 import ActivityLogPage from "./pages/ActivityLogPage";
+import InterviewSchedulePage from "./pages/InterviewSchedulePage"; // <-- ADD THIS
 
 // Applicant Pages
 import DashboardApplicantPage from "./pages/DashboardApplicantPage";
@@ -123,7 +124,7 @@ function App() {
           } 
         />
         
- <Route 
+        <Route 
           path="/hr/activitylog" 
           element={
             <ProtectedRoute allowedRoles={['hr']}>
@@ -131,7 +132,6 @@ function App() {
             </ProtectedRoute>
           } 
         />
-
 
         <Route 
           path="/hr/jobs" 
@@ -142,7 +142,7 @@ function App() {
           } 
         />
         
-      <Route 
+        <Route 
           path="/hr/reports" 
           element={
             <ProtectedRoute allowedRoles={['hr']}>
@@ -167,6 +167,16 @@ function App() {
           element={
             <ProtectedRoute allowedRoles={['hr']}>
               <JobCandidatesPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* ADD THIS: Interview Schedule Page */}
+        <Route 
+          path="/hr/jobs/:jobId/interviews" 
+          element={
+            <ProtectedRoute allowedRoles={['hr']}>
+              <InterviewSchedulePage />
             </ProtectedRoute>
           } 
         />

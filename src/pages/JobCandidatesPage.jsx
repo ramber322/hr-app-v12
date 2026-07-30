@@ -365,7 +365,6 @@ export default function JobCandidatesPage() {
       REVIEWING: { bg: "#E3F2FD", color: "#1565C0", label: "Under Review" },
       QUALIFIED: { bg: "#E8F5E9", color: "#2E7D32", label: "Qualified" },
       SHORTLISTED: { bg: "#E8F5E9", color: "#2E7D32", label: "Shortlisted" },
-      FOR_INTERVIEW: { bg: "#F3E5F5", color: "#7B1FA2", label: "For Interview" },
       INTERVIEW_SCHEDULED: { bg: "#F3E5F5", color: "#7B1FA2", label: "Interview Scheduled" },
       HIRED: { bg: "#E8F5E9", color: "#1B5E20", label: "Hired" },
       NOT_SELECTED: { bg: "#FFEBEE", color: "#C62828", label: "Not Selected" },
@@ -516,116 +515,247 @@ export default function JobCandidatesPage() {
   };
 
   const exportShortlistPDF = () => {
-    const shortlisted = candidates.filter(c => 
-      c.status === 'SHORTLISTED' || c.status === 'QUALIFIED'
-    );
+  // Check if candidate is fully qualified
+  const isFullyQualified = (candidate) => {
+    if (!candidate.education || candidate.education === 'N/A') return false;
+    if (!candidate.eligibility || candidate.eligibility === 'None' || candidate.eligibility === 'N/A') return false;
+    
+    if (candidate.training && candidate.training !== 'N/A') {
+      const match = candidate.training.match(/(\d+)\/(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = parseInt(match[2]);
+        if (required > 0 && actual < required) return false;
+      }
+    }
+    
+    if (candidate.experience && candidate.experience !== 'N/A') {
+      const match = candidate.experience.match(/(\d+)\/(\d+)/);
+      if (match) {
+        const actual = parseFloat(match[0]);
+        const required = parseFloat(match[1]);
+        if (required > 0 && actual < required) return false;
+      }
+    }
+    
+    return true;
+  };
 
-    if (shortlisted.length === 0) {
-      alert('No shortlisted candidates to export.');
-      return;
+  const shortlisted = candidates.filter(c => 
+    (c.status === 'SHORTLISTED' || c.status === 'QUALIFIED') &&
+    isFullyQualified(c)
+  );
+
+  if (shortlisted.length === 0) {
+    alert('No shortlisted candidates to export.');
+    return;
+  }
+
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
+  const lineWidth = pageWidth - (margin * 2);
+
+  // HEADER
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 20, { align: 'center' });
+  
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 28, { align: 'center' });
+
+  doc.setDrawColor(100);
+  doc.line(margin, 32, pageWidth - margin, 32);
+
+  // TITLE
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SHORTLIST OF QUALIFIED CANDIDATES', pageWidth / 2, 42, { align: 'center' });
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`For the Position of: ${job?.position_title || 'N/A'}`, pageWidth / 2, 50, { align: 'center' });
+
+  // NOTE
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.text('All candidates below fully meet all minimum CSC requirements.', pageWidth / 2, 58, { align: 'center' });
+
+  // METADATA
+  const today = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Date Generated: ${today}`, margin, 68);
+  doc.text(`Item No.: ${job?.item_no || 'N/A'}`, margin, 75);
+  doc.text(`Total Applicants: ${candidates.length}  |  Shortlisted: ${shortlisted.length}`, margin, 82);
+
+  // TABLE - With tableWidth set to match the line
+  const tableData = shortlisted.map((c, index) => {
+    let experienceDisplay = 'N/A';
+    let status = 'FIT';
+    
+    if (c.experience && c.experience !== 'N/A') {
+      const match = c.experience.match(/([\d.]+)\/([\d.]+)/);
+      if (match) {
+        const actual = parseFloat(match[1]);
+        const required = parseFloat(match[2]);
+        if (required === 0) {
+          experienceDisplay = 'Not Required';
+        } else {
+          experienceDisplay = `${actual}/${required} yrs`;
+          if (actual > required) {
+            status = 'HIGHLY FIT';
+          }
+        }
+      } else {
+        experienceDisplay = c.experience;
+      }
     }
 
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
+    const educationDisplay = cleanEducationText(c.education) || 'N/A';
+    if (educationDisplay.includes('Master') || educationDisplay.includes('PhD')) {
+      status = 'HIGHLY FIT';
+    }
 
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 25, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 33, { align: 'center' });
-
-    doc.setDrawColor(100);
-    doc.line(margin, 38, pageWidth - margin, 38);
-
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SHORTLIST OF QUALIFIED CANDIDATES', pageWidth / 2, 48, { align: 'center' });
-
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`For the Position of: ${job?.position_title || 'N/A'}`, pageWidth / 2, 56, { align: 'center' });
-
-    const today = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Date Generated: ${today}`, margin, 68);
-    doc.text(`Item No.: ${job?.item_no || 'N/A'}`, margin, 75);
-    doc.text(`Total Applicants: ${candidates.length}  |  Shortlisted: ${shortlisted.length}`, margin, 82);
-
-    const tableData = shortlisted.map((c, index) => [
+    return [
       index + 1,
       c.applicant_name,
-      cleanEducationText(c.education) || 'N/A',
-      c.eligibility || 'N/A',
-      `${c.ai_match_score || 0}%`
-    ]);
+      educationDisplay,
+      c.eligibility !== 'None' && c.eligibility !== 'N/A' 
+        ? c.eligibility 
+        : 'N/A',
+      experienceDisplay,
+      status
+    ];
+  });
 
-    autoTable(doc, {
-      startY: 90,
-      head: [['#', 'Name', 'Education', 'Eligibility', 'Score']],
-      body: tableData,
-      theme: 'grid',
-      styles: {
-        fontSize: 10,
-        cellPadding: 4,
-      },
-      headStyles: {
-        fillColor: [79, 70, 229],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-        fontSize: 10,
-      },
-      alternateRowStyles: {
-        fillColor: [245, 247, 250],
-      },
-      columnStyles: {
-        0: { cellWidth: 12, halign: 'center' },
-        1: { cellWidth: 'auto' },
-        2: { cellWidth: 35 },
-        3: { cellWidth: 35 },
-        4: { cellWidth: 25, halign: 'center' },
-      },
-      margin: { left: margin, right: margin },
-    });
+  autoTable(doc, {
+    startY: 88,
+    head: [['#', 'Name', 'Education', 'Eligibility', 'Experience', 'Status']],
+    body: tableData,
+    theme: 'grid',
+    styles: {
+      fontSize: 8,
+      cellPadding: 2,
+      overflow: 'linebreak',
+      valign: 'middle',
+    },
+    headStyles: {
+      fillColor: [79, 70, 229],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 8,
+      halign: 'center',
+    },
+    alternateRowStyles: {
+      fillColor: [245, 247, 250],
+    },
+    columnStyles: {
+      0: { cellWidth: 8, halign: 'center' },
+      1: { cellWidth: 38, halign: 'left' },
+      2: { cellWidth: 28, halign: 'left' },
+      3: { cellWidth: 30, halign: 'left' },
+      4: { cellWidth: 30, halign: 'left' },
+      5: { cellWidth: 28, halign: 'center' },
+    },
+    margin: { left: margin, right: margin },
+    tableWidth: lineWidth, // ← THIS forces the table to match the line width
+  });
 
-    const finalY = doc.lastAutoTable.finalY + 15;
+  let finalY = doc.lastAutoTable.finalY + 8;
 
-    doc.setDrawColor(100);
-    doc.line(margin, finalY, pageWidth - margin, finalY);
+  // SUMMARY LINE - Same width as header line and table
+  doc.setDrawColor(100);
+  doc.line(margin, finalY, pageWidth - margin, finalY);
+  finalY += 8;
 
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Prepared by:', margin, finalY + 15);
-    doc.text('Approved by:', pageWidth - margin - 40, finalY + 15);
+  // Count Highly Fit
+  const highlyFit = shortlisted.filter(c => {
+    let exceeds = false;
+    
+    if (c.experience && c.experience !== 'N/A') {
+      const match = c.experience.match(/([\d.]+)\/([\d.]+)/);
+      if (match) {
+        const actual = parseFloat(match[1]);
+        const required = parseFloat(match[2]);
+        if (required > 0 && actual > required) exceeds = true;
+      }
+    }
+    const edu = cleanEducationText(c.education);
+    if (edu.includes('Master') || edu.includes('PhD')) exceeds = true;
+    
+    return exceeds;
+  }).length;
 
-    doc.setFont('helvetica', 'normal');
-    doc.text('___________________________', margin, finalY + 25);
-    doc.text('___________________________', pageWidth - margin - 40, finalY + 25);
+  const fit = shortlisted.length - highlyFit;
 
-    doc.setFontSize(9);
-    doc.text('HRMO Designate', margin, finalY + 32);
-    doc.text('HRMPSB Chairperson', pageWidth - margin - 40, finalY + 32);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('SUMMARY', margin, finalY);
+  finalY += 6;
 
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'italic');
-    doc.text('This is a certified true copy of the shortlist.', pageWidth / 2, finalY + 45, { align: 'center' });
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Total Qualified: ${shortlisted.length}`, margin, finalY);
+  finalY += 5;
+  doc.text(`Highly Fit: ${highlyFit}`, margin + 5, finalY);
+  finalY += 5;
+  doc.text(`Fit: ${fit}`, margin + 5, finalY);
+  finalY += 8;
 
-    doc.setFontSize(40);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(200, 200, 200);
-    doc.text('FOR HRMPSB REVIEW', pageWidth / 2, 160, { align: 'center', angle: 45 });
-    doc.setTextColor(0, 0, 0);
+  // SIGNATURE SECTION
+  if (finalY > 250) {
+    doc.addPage();
+    finalY = 20;
+  }
 
-    doc.save(`Shortlist_${job?.position_title?.replace(/\s+/g, '_') || 'Candidates'}_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
+  doc.setDrawColor(100);
+  doc.line(margin, finalY, pageWidth - margin, finalY);
+
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Prepared by:', margin, finalY + 12);
+  doc.text('Approved by:', pageWidth - margin - 35, finalY + 12);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text('_________________________', margin, finalY + 22);
+  doc.text('_________________________', pageWidth - margin - 35, finalY + 22);
+
+  doc.setFontSize(8);
+  doc.text('HRMO Designate', margin, finalY + 30);
+  doc.text('HRMPSB Chairperson', pageWidth - margin - 35, finalY + 30);
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.text('This is a certified true copy of the shortlist.', pageWidth / 2, finalY + 42, { align: 'center' });
+
+  // WATERMARK
+  doc.setFontSize(40);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(200, 200, 200);
+  doc.text('FOR HRMPSB REVIEW', pageWidth / 2, 160, { align: 'center', angle: 45 });
+  doc.setTextColor(0);
+
+  // FOOTER
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7);
+    doc.setTextColor(150);
+    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, 285, { align: 'center' });
+    doc.text('FOR HRMPSB REVIEW USE', margin, 285);
+    doc.text(`Generated: ${today}`, pageWidth - margin, 285, { align: 'right' });
+    doc.setTextColor(0);
+  }
+
+  doc.save(`Shortlist_${job?.position_title?.replace(/\s+/g, '_') || 'Candidates'}_${new Date().toISOString().split('T')[0]}.pdf`);
+};
 
   const updateCandidateStatus = async (applicationId, newStatus) => {
     if (!window.confirm(`Change status to "${newStatus}"?`)) return;
@@ -651,6 +781,7 @@ export default function JobCandidatesPage() {
       
       if (jobError) throw jobError;
       
+      // Update application status
       const { error } = await supabase
         .from('applications')
         .update({ 
@@ -660,6 +791,47 @@ export default function JobCandidatesPage() {
         .eq('id', applicationId);
       
       if (error) throw error;
+      
+      // 🔥 NEW: If status is INTERVIEW_SCHEDULED, create an interview record
+      if (newStatus === 'INTERVIEW_SCHEDULED') {
+        // Check if interview already exists for this application
+        const { data: existingInterview, error: checkError } = await supabase
+          .from('interviews')
+          .select('id')
+          .eq('application_id', applicationId)
+          .maybeSingle();
+        
+        if (!existingInterview) {
+          // Get current user
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id || null;
+          
+          // Create interview record with TBD status
+          const { error: insertError } = await supabase
+            .from('interviews')
+            .insert({
+              application_id: applicationId,
+              applicant_id: appData.applicant_id,
+              job_id: appData.job_id,
+              scheduled_date: null,
+              duration_minutes: null,
+              location: null,
+              description: null,
+              status: 'SCHEDULED',
+              needs_scheduling: true,
+              scheduled_by: userId,
+              scheduled_at: new Date().toISOString(),
+            });
+          
+          if (insertError) {
+            console.error('Error creating interview record:', insertError);
+          } else {
+            console.log('✅ Interview record created for TBD scheduling');
+          }
+        } else {
+          console.log('ℹ️ Interview record already exists for this application');
+        }
+      }
       
       console.log('📨 Sending notification to applicant...');
       
@@ -780,7 +952,6 @@ export default function JobCandidatesPage() {
                 <option value="REVIEWING">Under Review</option>
                 <option value="SHORTLISTED">Shortlisted</option>
                 <option value="QUALIFIED">Qualified</option>
-                <option value="FOR_INTERVIEW">For Interview</option>
                 <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
                 <option value="HIRED">Hired</option>
                 <option value="NOT_SELECTED">Not Selected</option>
@@ -1009,11 +1180,47 @@ export default function JobCandidatesPage() {
               </table>
             </div>
 
-            <div className="job-req-note">
-              <span><strong>Education:</strong> {job?.qualifications?.education || 'N/A'}</span>
-              <span><strong>Eligibility:</strong> {job?.qualifications?.eligibility || 'N/A'}</span>
-              <span><strong>Training:</strong> {job?.qualifications?.training || 'N/A'}</span>
-              <span><strong>Work Experience:</strong> {job?.qualifications?.workExperience || 'N/A'}</span>
+            {/* View Interview Schedule Button - Placed at the bottom of the table */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center', 
+              marginTop: '24px',
+              marginBottom: '8px'
+            }}>
+              <button 
+                onClick={() => {
+                  navigate(`/hr/jobs/${jobId}/interviews`, { 
+                    state: { from: location.pathname } 
+                  });
+                }}
+                style={{
+                  padding: '12px 32px',
+                  background: '#4f46e5',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  fontSize: '16px',
+                  transition: 'all 0.2s ease',
+                  boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.background = '#4338ca';
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 4px 12px rgba(79, 70, 229, 0.4)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.background = '#4f46e5';
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.3)';
+                }}
+              >
+                📅 View Interview Schedule
+              </button>
             </div>
           </>
         )}
@@ -1223,8 +1430,6 @@ export default function JobCandidatesPage() {
                         <option value="REVIEWING">Under Review</option>
                         <option value="SHORTLISTED">Shortlisted</option>
                         <option value="QUALIFIED">Qualified</option>
-                        <option value="FOR_INTERVIEW">For Interview</option>
-                        <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
                         <option value="HIRED">Hired</option>
                         <option value="NOT_SELECTED">Not Selected</option>
                         <option value="REJECTED">Rejected</option>
@@ -1283,31 +1488,31 @@ export default function JobCandidatesPage() {
                     </tr>
                   </thead>
                   <tbody>
-                   <tr>
-  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Score</td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    <span style={{ 
-      background: getScoreBg(selectedCompareCandidates[0].ai_match_score),
-      color: getScoreColor(selectedCompareCandidates[0].ai_match_score),
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontWeight: '600'
-    }}>
-      {selectedCompareCandidates[0].ai_match_score}%
-    </span>
-  </td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    <span style={{ 
-      background: getScoreBg(selectedCompareCandidates[1].ai_match_score),
-      color: getScoreColor(selectedCompareCandidates[1].ai_match_score),
-      padding: '4px 12px',
-      borderRadius: '20px',
-      fontWeight: '600'
-    }}>
-      {selectedCompareCandidates[1].ai_match_score}%
-    </span>
-  </td>
-</tr>
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Score</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        <span style={{ 
+                          background: getScoreBg(selectedCompareCandidates[0].ai_match_score),
+                          color: getScoreColor(selectedCompareCandidates[0].ai_match_score),
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontWeight: '600'
+                        }}>
+                          {selectedCompareCandidates[0].ai_match_score}%
+                        </span>
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        <span style={{ 
+                          background: getScoreBg(selectedCompareCandidates[1].ai_match_score),
+                          color: getScoreColor(selectedCompareCandidates[1].ai_match_score),
+                          padding: '4px 12px',
+                          borderRadius: '20px',
+                          fontWeight: '600'
+                        }}>
+                          {selectedCompareCandidates[1].ai_match_score}%
+                        </span>
+                      </td>
+                    </tr>
 
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Requirements Met</td>
@@ -1319,125 +1524,121 @@ export default function JobCandidatesPage() {
                       </td>
                     </tr>
 
-             {/* Education Row - FIXED */}
-<tr>
-  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Education</td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {cleanEducationText(selectedCompareCandidates[0].education)}
-    {(() => {
-      const edu = selectedCompareCandidates[0].education || '';
-      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
-      const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
-      const requiredLevel = jobRequirements.education || 0;
-      if (requiredLevel === 0) return ' (Not Required)';
-      return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
-    })()}
-  </td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {cleanEducationText(selectedCompareCandidates[1].education)}
-    {(() => {
-      const edu = selectedCompareCandidates[1].education || '';
-      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
-      const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
-      const requiredLevel = jobRequirements.education || 0;
-      if (requiredLevel === 0) return ' (Not Required)';
-      return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
-    })()}
-  </td>
-</tr>
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Education</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {cleanEducationText(selectedCompareCandidates[0].education)}
+                        {(() => {
+                          const edu = selectedCompareCandidates[0].education || '';
+                          const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+                          const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
+                          const requiredLevel = jobRequirements.education || 0;
+                          if (requiredLevel === 0) return ' (Not Required)';
+                          return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
+                        })()}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {cleanEducationText(selectedCompareCandidates[1].education)}
+                        {(() => {
+                          const edu = selectedCompareCandidates[1].education || '';
+                          const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+                          const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
+                          const requiredLevel = jobRequirements.education || 0;
+                          if (requiredLevel === 0) return ' (Not Required)';
+                          return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
+                        })()}
+                      </td>
+                    </tr>
 
-        {/* Eligibility Row - FIXED */}
-<tr>
-  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Eligibility</td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {selectedCompareCandidates[0].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
-    {(() => {
-      const actual = selectedCompareCandidates[0].eligibility || 'None';
-      const required = jobRequirements.eligibility;
-      // Check all possible "not required" cases
-      if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
-        return ' (Not Required)';
-      }
-      return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
-    })()}
-  </td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {selectedCompareCandidates[1].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
-    {(() => {
-      const actual = selectedCompareCandidates[1].eligibility || 'None';
-      const required = jobRequirements.eligibility;
-      if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
-        return ' (Not Required)';
-      }
-      return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
-    })()}
-  </td>
-</tr>
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Eligibility</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[0].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
+                        {(() => {
+                          const actual = selectedCompareCandidates[0].eligibility || 'None';
+                          const required = jobRequirements.eligibility;
+                          if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
+                            return ' (Not Required)';
+                          }
+                          return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
+                        })()}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[1].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
+                        {(() => {
+                          const actual = selectedCompareCandidates[1].eligibility || 'None';
+                          const required = jobRequirements.eligibility;
+                          if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
+                            return ' (Not Required)';
+                          }
+                          return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
+                        })()}
+                      </td>
+                    </tr>
 
-                   <tr>
-  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Training</td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {selectedCompareCandidates[0].training || 'N/A'}
-    {(() => {
-      const training = selectedCompareCandidates[0].training || '';
-      const match = training.match(/(\d+)\s*\/\s*(\d+)/);
-      if (match) {
-        const actual = parseInt(match[1]);
-        const required = parseInt(match[2]);
-        if (required === 0) return ' (Not Required)';
-        return actual >= required ? ' ✅' : ' ❌';
-      }
-      return ' (Not Required)';
-    })()}
-  </td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {selectedCompareCandidates[1].training || 'N/A'}
-    {(() => {
-      const training = selectedCompareCandidates[1].training || '';
-      const match = training.match(/(\d+)\s*\/\s*(\d+)/);
-      if (match) {
-        const actual = parseInt(match[1]);
-        const required = parseInt(match[2]);
-        if (required === 0) return ' (Not Required)';
-        return actual >= required ? ' ✅' : ' ❌';
-      }
-      return ' (Not Required)';
-    })()}
-  </td>
-</tr>
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Training</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[0].training || 'N/A'}
+                        {(() => {
+                          const training = selectedCompareCandidates[0].training || '';
+                          const match = training.match(/(\d+)\s*\/\s*(\d+)/);
+                          if (match) {
+                            const actual = parseInt(match[1]);
+                            const required = parseInt(match[2]);
+                            if (required === 0) return ' (Not Required)';
+                            return actual >= required ? ' ✅' : ' ❌';
+                          }
+                          return ' (Not Required)';
+                        })()}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[1].training || 'N/A'}
+                        {(() => {
+                          const training = selectedCompareCandidates[1].training || '';
+                          const match = training.match(/(\d+)\s*\/\s*(\d+)/);
+                          if (match) {
+                            const actual = parseInt(match[1]);
+                            const required = parseInt(match[2]);
+                            if (required === 0) return ' (Not Required)';
+                            return actual >= required ? ' ✅' : ' ❌';
+                          }
+                          return ' (Not Required)';
+                        })()}
+                      </td>
+                    </tr>
 
-                  {/* Experience Row - FIXED */}
-<tr>
-  <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Experience</td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {selectedCompareCandidates[0].experience || 'N/A'}
-    {(() => {
-      const exp = selectedCompareCandidates[0].experience || '';
-      const match = exp.match(/(\d+)/);
-      if (match) {
-        const actual = parseInt(match[1]);
-        const required = jobRequirements.workExperience || 0;
-        if (required === 0) return ' (Not Required)';
-        return actual >= required ? ' ✅' : ' ❌';
-      }
-      return ' (Not Required)';
-    })()}
-  </td>
-  <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-    {selectedCompareCandidates[1].experience || 'N/A'}
-    {(() => {
-      const exp = selectedCompareCandidates[1].experience || '';
-      const match = exp.match(/(\d+)/);
-      if (match) {
-        const actual = parseInt(match[1]);
-        const required = jobRequirements.workExperience || 0;
-        if (required === 0) return ' (Not Required)';
-        return actual >= required ? ' ✅' : ' ❌';
-      }
-      return ' (Not Required)';
-    })()}
-  </td>
-</tr>
+                    <tr>
+                      <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Experience</td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[0].experience || 'N/A'}
+                        {(() => {
+                          const exp = selectedCompareCandidates[0].experience || '';
+                          const match = exp.match(/(\d+)/);
+                          if (match) {
+                            const actual = parseInt(match[1]);
+                            const required = jobRequirements.workExperience || 0;
+                            if (required === 0) return ' (Not Required)';
+                            return actual >= required ? ' ✅' : ' ❌';
+                          }
+                          return ' (Not Required)';
+                        })()}
+                      </td>
+                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+                        {selectedCompareCandidates[1].experience || 'N/A'}
+                        {(() => {
+                          const exp = selectedCompareCandidates[1].experience || '';
+                          const match = exp.match(/(\d+)/);
+                          if (match) {
+                            const actual = parseInt(match[1]);
+                            const required = jobRequirements.workExperience || 0;
+                            if (required === 0) return ' (Not Required)';
+                            return actual >= required ? ' ✅' : ' ❌';
+                          }
+                          return ' (Not Required)';
+                        })()}
+                      </td>
+                    </tr>
 
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Status</td>
