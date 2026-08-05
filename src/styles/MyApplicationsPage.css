@@ -343,3 +343,28 @@
   .detail-grid { grid-template-columns: 1fr; }
   .job-details { flex-direction: column; gap: 8px; }
 }
+
+
+.job-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-direction: row; /* Ensure it's row */
+}
+
+.location-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  display: inline-block;
+  margin-left: 3px;
+}
+
+
+.calendar-blue-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-block;
+   margin-right: 6px; /* Add space after icon */
+}

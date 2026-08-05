@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from "../components/Navbar";
 import { supabase } from '../lib/supabase';
+import { PatternBackground } from '../components/PatternBackground'; // ADD THIS IMPORT
+import Loader from '../components/Loader';
 
 function ApplicantProfilePage() {
   const navigate = useNavigate();
@@ -58,9 +60,13 @@ function ApplicantProfilePage() {
   const handleSave = async () => {
     setIsEditing(false);
     setLoading(true);
-    
+
     try {
-      // Update user metadata only
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+      if (userError) throw userError;
+      if (!user) throw new Error("User not found");
+
       const { error: updateError } = await supabase.auth.updateUser({
         data: {
           first_name: profile.firstName,
@@ -71,11 +77,23 @@ function ApplicantProfilePage() {
           address: profile.address
         }
       });
-      
+
       if (updateError) throw updateError;
-      
+
+      const { error: applicantError } = await supabase
+        .from('applicants')
+        .update({
+          full_name: `${profile.firstName} ${profile.surname}`,
+          phone: profile.phoneNumber,
+          email: profile.email,
+          address: profile.address
+        })
+        .eq('id', user.id);
+
+      if (applicantError) throw applicantError;
+
       alert('Profile saved successfully!');
-      
+
     } catch (error) {
       console.error('Error saving profile:', error);
       alert('Error saving profile: ' + error.message);
@@ -87,15 +105,18 @@ function ApplicantProfilePage() {
   const styles = `
     .profile-page {
       min-height: 100vh;
-      background: #f5f6f8;
+      background: #eefbff;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       padding-top: 70px;
+      position: relative;
     }
 
     .profile-container {
       max-width: 1000px;
       margin: 0 auto;
       padding: 20px;
+      position: relative;
+      z-index: 1;
     }
 
     .profile-header {
@@ -235,8 +256,9 @@ function ApplicantProfilePage() {
         <Navbar userRole="applicant" />
         <div className="profile-page">
           <style>{styles}</style>
+    
           <div className="profile-container">
-            <div className="loading-text">Loading profile...</div>
+            <div className="loading-text"><Loader/></div>
           </div>
         </div>
       </>
@@ -248,6 +270,9 @@ function ApplicantProfilePage() {
       <Navbar userRole="applicant" />
       <div className="profile-page">
         <style>{styles}</style>
+        
+        {/* Pattern Background */}
+        <PatternBackground color="#aeacde" opacity={0.04} strokeOpacity={0.1} />
         
         <div className="profile-container">
           <div className="profile-header">
@@ -274,32 +299,55 @@ function ApplicantProfilePage() {
               <div className="form-grid">
                 <div className="form-group">
                   <label>First Name</label>
-                  <input type="text" value={profile.firstName} disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, firstName: e.target.value})} />
+                  <input 
+                    type="text" 
+                    value={profile.firstName} 
+                    disabled={!isEditing}
+                    onChange={(e) => setProfile({...profile, firstName: e.target.value})} 
+                  />
                 </div>
                 <div className="form-group">
                   <label>Surname</label>
-                  <input type="text" value={profile.surname} disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, surname: e.target.value})} />
+                  <input 
+                    type="text" 
+                    value={profile.surname} 
+                    disabled={!isEditing}
+                    onChange={(e) => setProfile({...profile, surname: e.target.value})} 
+                  />
                 </div>
                 <div className="form-group">
                   <label>Phone Number</label>
-                  <input type="tel" value={profile.phoneNumber} disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})} />
+                  <input 
+                    type="tel" 
+                    value={profile.phoneNumber} 
+                    disabled={!isEditing}
+                    onChange={(e) => setProfile({...profile, phoneNumber: e.target.value})} 
+                  />
                 </div>
                 <div className="form-group">
                   <label>Email Address</label>
-                  <input type="email" value={profile.email} disabled={true} />
+                  <input 
+                    type="email" 
+                    value={profile.email} 
+                    disabled={true} 
+                  />
                 </div>
                 <div className="form-group">
                   <label>Age</label>
-                  <input type="number" value={profile.age} disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, age: e.target.value})} />
+                  <input 
+                    type="number" 
+                    value={profile.age} 
+                    disabled={true}
+                    onChange={(e) => setProfile({...profile, age: e.target.value})} 
+                  />
                 </div>
                 <div className="form-group">
                   <label>Gender</label>
-                  <select value={profile.gender} disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, gender: e.target.value})}>
+                  <select 
+                    value={profile.gender} 
+                    disabled={!isEditing}
+                    onChange={(e) => setProfile({...profile, gender: e.target.value})}
+                  >
                     <option value="">Select...</option>
                     <option>Male</option>
                     <option>Female</option>
@@ -308,8 +356,12 @@ function ApplicantProfilePage() {
                 </div>
                 <div className="form-group full-width">
                   <label>Address</label>
-                  <textarea rows="2" value={profile.address} disabled={!isEditing}
-                    onChange={(e) => setProfile({...profile, address: e.target.value})} />
+                  <textarea 
+                    rows="2" 
+                    value={profile.address} 
+                    disabled={!isEditing}
+                    onChange={(e) => setProfile({...profile, address: e.target.value})} 
+                  />
                 </div>
               </div>
             </div>

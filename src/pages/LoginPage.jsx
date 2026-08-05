@@ -1,7 +1,12 @@
+// src/pages/LoginPage.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import '/src/styles/LoginPage.css';
+
+// Import images from assets folder
+import lguLogo from '../assets/lgu-official-seal.png';
+import chrmoLogo from '../assets/chrmo-official-seal.png';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -10,7 +15,7 @@ function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const handleSubmit = async (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
     
@@ -34,17 +39,9 @@ function LoginPage() {
       }
 
       if (data.user) {
-        // Get user role from user_metadata
         const userRole = data.user.user_metadata?.role || 'applicant';
-        
         console.log('Login successful:', data.user);
-        
-        // Redirect based on role
-        if (userRole === 'hr') {
-          navigate('/hr/dashboard');
-        } else {
-          navigate('/applicant/dashboard');
-        }
+        navigate(userRole === 'hr' ? '/hr/dashboard' : '/applicant/dashboard');
       }
     } catch (err) {
       setError('An unexpected error occurred');
@@ -53,66 +50,143 @@ function LoginPage() {
   };
 
   return (
+    <div className="login-page-wrapper"> 
     <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1>HR Portal</h1>
-          <p>Welcome back! Please login to your account</p>
+      <div className="bg-decoration">
+        <div className="circle circle-1"></div>
+        <div className="circle circle-2"></div>
+        <div className="circle circle-3"></div>
+      </div>
+
+      <div className="main-content">
+        <div className="landing-section">
+          <div className="landing-content">
+            {/* Header with Title and Logos */}
+            <div className="landing-header">
+              <div className="header-title">
+                <h3>City Government of</h3>
+                <h1>Iligan</h1>
+                <p>Human Resource Management Portal</p>
+              </div>
+              <div className="header-logos">
+                {/* LGU Logo */}
+                <div className="circle-logo lgu-logo">
+                  <img 
+                    src={lguLogo} 
+                    alt="LGU Iligan" 
+                    className="logo-image"
+                  />
+                </div>
+                {/* CHRMO Logo */}
+                <div className="circle-logo chrmo-logo">
+                  <img 
+                    src={chrmoLogo} 
+                    alt="CHRMO" 
+                    className="logo-image"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="hero-content">
+              <h2>Streamlining Public Service Through <span className="highlight">Digital Transformation</span></h2>
+              <p className="subtitle">
+                CHRMO Iligan - committed to building a competent, professional, and responsive workforce for public service excellence.
+              </p>
+            </div>
+
+            <div className="features-grid">
+              <div className="feature-item">
+                <div className="feature-icon">📂</div>
+                <div>
+                  <h4>Data Management</h4>
+                  <p>Centralized storage and organization of applicant records</p>
+                </div>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">⚡</div>
+                <div>
+                  <h4>Smart Evaluation</h4>
+                  <p>AI-assisted applicant evaluation and ranking</p>
+                </div>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">📊</div>
+                <div>
+                  <h4>Reports & Analytics</h4>
+                  <p>HR data insights and compliance reports</p>
+                </div>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">🏛️</div>
+                <div>
+                  <h4>CSC Compliance</h4>
+                  <p>Automated reporting and document management</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="lgu-footer">
+              <p className="footer-address">📍 Buhanginan Hills, Pala-o, Iligan City, Philippines</p>
+              <p>© 2024 City Government of Iligan - HRMD</p>
+            </div>
+          </div>
         </div>
 
-        {error && <div className="error-message">{error}</div>}
+        <div className="form-section">
+          <div className="form-card">
+            <div className="form-header">
+              <h2>Welcome Back</h2>
+              <p>Login to access your dashboard</p>
+            </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label htmlFor="email">Email Address</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="john.doe@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
+            {error && <div className="error-message">{error}</div>}
+
+            <form onSubmit={handleLogin}>
+              <div className="input-group">
+                <label>Email Address</label>
+                <input
+                  type="email"
+                  placeholder="john.doe@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="input-group">
+                <label>Password</label>
+                <input
+                  type="password"
+                  placeholder="********"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="register-row">
+                <span>Don't have an account? <Link to="/signup">Register here</Link></span>
+              </div>
+
+              <div className="login-row">
+                <a href="#" className="forgot-link">Forgot Password?</a>
+                <button type="submit" className="login-button" disabled={isLoading}>
+                  {isLoading ? (
+                    <>
+                      <span className="spinner"></span>
+                      Logging in...
+                    </>
+                  ) : (
+                    'Login'
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Password</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="login-options">
-            <label className="checkbox-label">
-              <input type="checkbox" /> Remember me
-            </label>
-            <a href="#" className="forgot-link">Forgot Password?</a>
-          </div>
-
-          <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <span className="spinner"></span>
-                Logging in...
-              </>
-            ) : (
-              'Login'
-            )}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <p>Demo credentials: admin@hrportal.com / password123</p>
-          <p style={{ marginTop: '10px' }}>
-            Don't have an account? <a href="/signup">Sign up here</a>
-          </p>
         </div>
       </div>
+    </div>
     </div>
   );
 }

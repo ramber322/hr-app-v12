@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/ActivityLogPage.css";
 import { ActivityLogDocument } from "../components/icons/CustomIcons";
+import Loader from '../components/Loader';
 
 export default function ActivityLogPage() {
   const navigate = useNavigate();
@@ -390,6 +391,7 @@ export default function ActivityLogPage() {
         <Navbar userRole="hr" />
         <div className="activity-container">
           <style>{styles}</style>
+          <Loader/>
           <div className="loading-state">Loading activity log...</div>
         </div>
       </>

@@ -1,7 +1,8 @@
+// src/pages/SignUpPage.jsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import '/src/styles/LoginPage.css'; // Reuse same styles
+import '/src/styles/SignUpPage.css';
 
 function SignUpPage() {
   const navigate = useNavigate();
@@ -57,11 +58,28 @@ function SignUpPage() {
         return;
       }
 
-      if (data.user) {
-        console.log('Sign up successful:', data.user);
-        alert('Account created successfully! Please login.');
-        navigate('/login');
-      }
+     if (data.user) {
+  console.log('Sign up successful:', data.user);
+
+  const { error: applicantError } = await supabase
+    .from('applicants')
+    .insert({
+      id: data.user.id,
+      full_name: `${firstName} ${surname}`,
+      email: email,
+      phone: phoneNumber
+    });
+
+  if (applicantError) {
+    console.error('Applicant creation failed:', applicantError);
+    setError(applicantError.message);
+    setIsLoading(false);
+    return;
+  }
+
+  alert('Account created successfully! Please login.');
+  navigate('/login');
+}
     } catch (err) {
       setError('An unexpected error occurred');
       setIsLoading(false);
@@ -69,124 +87,129 @@ function SignUpPage() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1>Create Account</h1>
-          <p>Sign up to get started with HR Portal</p>
-        </div>
+    <div className="signup-wrapper">
+      {/* Background Shapes */}
+      <div className="shapes">
+        <div className="shape shape-1"></div>
+        <div className="shape shape-2"></div>
+        <div className="shape shape-3"></div>
+        <div className="shape shape-4"></div>
+        <div className="shape shape-5"></div>
+      </div>
 
-        {error && <div className="error-message">{error}</div>}
-
-        <form onSubmit={handleSubmit}>
-          <div className="input-group">
-            <label htmlFor="firstName">First Name *</label>
-            <input
-              id="firstName"
-              type="text"
-              placeholder="John"
-              value={firstName}
-              onChange={(e) => setFirstName(e.target.value)}
-              disabled={isLoading}
-            />
+      <div className="signup-container">
+        <div className="signup-card">
+          <div className="signup-header">
+            <h2>Create Account</h2>
+            <p>Join CHRMO Iligan's HR Management Portal</p>
           </div>
 
-          <div className="input-group">
-            <label htmlFor="surname">Surname *</label>
-            <input
-              id="surname"
-              type="text"
-              placeholder="Dela Cruz"
-              value={surname}
-              onChange={(e) => setSurname(e.target.value)}
-              disabled={isLoading}
-            />
+          {error && <div className="error-message">{error}</div>}
+
+          <form onSubmit={handleSubmit}>
+            <div className="form-row">
+              <div className="input-group half">
+                <label>First Name </label>
+                <input
+                  type="text"
+                  placeholder="John"
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="input-group half">
+                <label>Surname </label>
+                <input
+                  type="text"
+                  placeholder="Doe"
+                  value={surname}
+                  onChange={(e) => setSurname(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+           
+
+            <div className="input-group">
+              <label>Email Address </label>
+              <input
+                type="email"
+                placeholder="johndoe@gmail.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="form-row password-row">
+              <div className="input-group half">
+                <label>Password </label>
+                <input
+                  type="password"
+                  placeholder="Min 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="input-group half">
+                <label>Confirm Password </label>
+                <input
+                  type="password"
+                  placeholder="Confirm password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={isLoading}
+                />
+              </div>
+            </div>
+
+             <div className="input-group">
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                placeholder="0912 345 6789"
+                value={phoneNumber}
+                onChange={(e) => setPhoneNumber(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+
+            <div className="input-group">
+              <label>I am signing up as</label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value)}
+                disabled={isLoading}
+                className="role-select"
+              >
+                <option value="applicant">📋 Job Applicant</option>
+                <option value="hr">🏢 HR Personnel</option>
+              </select>
+            </div>
+
+          
+            <button type="submit" className="signup-button" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <span className="spinner"></span>
+                  Creating account...
+                </>
+              ) : (
+                'Create Account'
+              )}
+            </button>
+          </form>
+
+          <div className="signup-footer">
+            <p>
+              Already have an account? <Link to="/login">Login here</Link>
+            </p>
           </div>
-
-          <div className="input-group">
-            <label htmlFor="phoneNumber">Phone Number</label>
-            <input
-              id="phoneNumber"
-              type="tel"
-              placeholder="0912 345 6789"
-              value={phoneNumber}
-              onChange={(e) => setPhoneNumber(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="email">Email Address *</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="john.doe@company.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="role">I am signing up as</label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value)}
-              disabled={isLoading}
-              style={{
-                width: '100%',
-                padding: '12px 15px',
-                border: '2px solid #e1e5e9',
-                borderRadius: '10px',
-                fontSize: '1rem'
-              }}
-            >
-              <option value="applicant">Job Applicant</option>
-              <option value="hr">HR Personnel</option>
-            </select>
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="password">Password *</label>
-            <input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <div className="input-group">
-            <label htmlFor="confirmPassword">Confirm Password *</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              disabled={isLoading}
-            />
-          </div>
-
-          <button type="submit" className="login-button" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <span className="spinner"></span>
-                Creating account...
-              </>
-            ) : (
-              'Sign Up'
-            )}
-          </button>
-        </form>
-
-        <div className="login-footer">
-          <p>
-            Already have an account? <a href="/login">Login here</a>
-          </p>
         </div>
       </div>
     </div>

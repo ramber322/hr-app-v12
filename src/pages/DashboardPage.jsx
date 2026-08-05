@@ -4,7 +4,8 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/DashboardPage.css";
 import { CalendarColoredIcon, ClockIcon, DocumentColoredIcon, GraphChartIcon, ConfettiIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, BriefcaseIcon, DocumentListIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
-
+import calendarLogo from '../assets/icon-calendar.png';
+import Loader from '../components/Loader';
 // Chart.js imports
 import {
   Chart as ChartJS,
@@ -665,7 +666,8 @@ export default function DashboardPage() {
         <Navbar userRole="hr" />
         <div className="hr-dashboard">
           <style>{styles}</style>
-          <div className="loading-state">Loading dashboard...</div>
+           <Loader />
+           
         </div>
       </>
     );
@@ -812,7 +814,7 @@ export default function DashboardPage() {
           <div className="dashboard-card">
             <div className="card-header">
              <h3 className="icon-title">
-  <CalendarColoredIcon size={22} />
+  <img src={calendarLogo} alt="Calendar" className="calendar-icon" />
   {monthNames[currentMonth.getMonth()]}, {currentMonth.getFullYear()}
 </h3>
             </div>

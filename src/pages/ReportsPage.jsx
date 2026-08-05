@@ -6,7 +6,8 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import "../styles/ReportsPage.css";
- 
+ import Loader from '../components/Loader';
+
 import { ReportsChartIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
 
 // Chart.js imports
@@ -584,6 +585,7 @@ h3 svg {
         <Navbar userRole="hr" />
         <div className="reports-container">
           <style>{styles}</style>
+          <Loader/>
           <div className="loading-state">Loading reports...</div>
         </div>
       </>

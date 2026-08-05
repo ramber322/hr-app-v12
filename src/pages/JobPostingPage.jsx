@@ -4,7 +4,8 @@ import Navbar from "../components/Navbar";
 import { createJobPosting, getJobPostings, updateJobStatuses } from "../services/jobService";
 import '/src/styles/JobPostingPage.css';
 import { CalendarIcon, CalendarColoredIcon, DocumentMonoIcon } from "../components/icons/CustomIcons";
-
+import calendarLogo from '../assets/icon-calendar.png';
+import Loader from '../components/Loader';
 
 // =========================
 // POSITION TITLES (Combined with Level)
@@ -390,7 +391,8 @@ export default function JobPostingPage() {
 
         <div className="jobs-grid">
           {loading ? (
-            <div className="loading-state">Loading jobs...</div>
+            
+              <Loader />
           ) : filteredJobs.length === 0 ? (
             <div className="empty-state">
               {jobs.length === 0 ? (
@@ -419,7 +421,7 @@ export default function JobPostingPage() {
                   <DocumentMonoIcon/> {job.applicants_count || 0} applicant(s) applied
                 </div>
                 <div className="job-deadline">
-                  <CalendarColoredIcon  /> Closing Date: {job.closing_date}
+                  <img src={calendarLogo} alt="Calendar" className="calendar-icon" /> Closing Date: {job.closing_date}
                 </div>
                 <div className="job-card-actions">
                   <button className="view-btn" onClick={() => setShowDetails(job)}>

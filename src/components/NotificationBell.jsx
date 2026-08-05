@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { getNotifications, getUnreadCount, markAsRead, markAllAsRead, deleteNotification } from '../services/notificationService';
+import { CheckIcon } from '../components/icons/CustomIcons';
+
 
 function NotificationBell() {
   const navigate = useNavigate();
@@ -113,7 +115,7 @@ function NotificationBell() {
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
-    return `${days}d ago`;
+    return `${days}d `;
   };
 
   const getNotificationIcon = (type) => {
@@ -248,7 +250,7 @@ function NotificationBell() {
     }
 
     .notification-item.unread:hover {
-      background: #e8eeff;
+      background: #d4daeb;
     }
 
     .notification-icon {
@@ -390,7 +392,7 @@ function NotificationBell() {
                           e.stopPropagation();
                           handleMarkAsRead(notification.id);
                         }} title="Mark as read">
-                          ✅
+                          <CheckIcon size={18} style={{ color: 'black' }} />
                         </button>
                       )}
                       <button onClick={(e) => {

@@ -7,6 +7,7 @@ import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
 import { DocumentCheckIcon } from "../components/icons/CustomIcons";
+import JobCandidateButton from "../components/JobCandidateButton";
 
 export default function JobCandidatesPage() {
   const { jobId } = useParams();
@@ -231,7 +232,7 @@ export default function JobCandidatesPage() {
               contributingFactors.push(`Completed ${actual} training hours (meets ${required} hour requirement)`);
             } else if (key === 'Eligibility') {
               const eligDisplay = typeof actual === 'string' ? actual : actual;
-              contributingFactors.push(`Has ${eligDisplay} eligibility`);
+              contributingFactors.push(`Has Career Service ${eligDisplay} eligibility`);
             } else {
               contributingFactors.push(`${key}: ${status}`);
             }
@@ -253,7 +254,7 @@ export default function JobCandidatesPage() {
             if (key === 'Eligibility') {
               const eligDisplay = typeof actual === 'string' ? actual : actual;
               const reqDisplay = typeof required === 'string' ? required : required;
-              scoreReduced.push(`Eligibility: Has ${eligDisplay} (needs ${reqDisplay})`);
+              scoreReduced.push(`Eligibility: Has Career Service ${eligDisplay} (needs ${reqDisplay})`);
             } else if (key === 'Experience') {
               scoreReduced.push(`Experience: ${actual} years (needs ${required} years)`);
             } else if (key === 'Training Hours') {
@@ -271,7 +272,7 @@ export default function JobCandidatesPage() {
         }
         
         if (contributingFactors.length === 0) {
-          contributingFactors.push('Meets minimum qualifications');
+          contributingFactors.push('Received partial score based on related qualifications');
         }
         
         return {
@@ -330,7 +331,7 @@ export default function JobCandidatesPage() {
       const eduLevels = ['', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
       const actualLevel = eduLevels[edu.actual] || `Level ${edu.actual}`;
       const reqLevel = eduLevels[edu.required] || `Level ${edu.required}`;
-      return `${actualLevel} (Required: ${reqLevel})`;
+      return `${actualLevel} `;
     }
     return 'N/A';
   };
@@ -447,73 +448,98 @@ export default function JobCandidatesPage() {
   };
 
   // =============================================
-  // FIXED: HUMAN-READABLE COMPARISON SUMMARY
-  // =============================================
-  const getComparisonSummary = (candidateA, candidateB) => {
-    const aScore = candidateA.ai_match_score || 0;
-    const bScore = candidateB.ai_match_score || 0;
-    const higher = aScore >= bScore ? candidateA : candidateB;
-    const lower = aScore >= bScore ? candidateB : candidateA;
-    const reasons = [];
+// HUMAN-READABLE NARRATIVE COMPARISON SUMMARY
+// =============================================
+const getComparisonSummary = (candidateA, candidateB) => {
+  const aScore = candidateA.ai_match_score || 0;
+  const bScore = candidateB.ai_match_score || 0;
 
-    // FIXED: Education - compare by actual education level, not by score
-    const aEdu = cleanEducationText(candidateA.education);
-    const bEdu = cleanEducationText(candidateB.education);
-    if (aEdu !== bEdu && aEdu !== 'N/A' && bEdu !== 'N/A') {
-      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
-      const aLevel = eduLevels.indexOf(aEdu);
-      const bLevel = eduLevels.indexOf(bEdu);
-      
-      if (aLevel > bLevel) {
-        reasons.push(`Higher education (${aEdu} vs ${bEdu})`);
-      } else if (bLevel > aLevel) {
-        reasons.push(`Higher education (${bEdu} vs ${aEdu})`);
-      }
+  const higher = aScore >= bScore ? candidateA : candidateB;
+  const lower = aScore >= bScore ? candidateB : candidateA;
+
+  const reasons = [];
+
+  // Education comparison
+  const aEdu = cleanEducationText(candidateA.education);
+  const bEdu = cleanEducationText(candidateB.education);
+
+  if (aEdu !== bEdu && aEdu !== 'N/A' && bEdu !== 'N/A') {
+    const eduLevels = [
+      'None',
+      'Elementary',
+      'High School',
+      '2-Year College',
+      "Bachelor's",
+      "Master's",
+      'PhD/Doctorate'
+    ];
+
+    const aLevel = eduLevels.indexOf(aEdu);
+    const bLevel = eduLevels.indexOf(bEdu);
+
+    if (aLevel > bLevel) {
+      reasons.push(`including higher educational attainment (${aEdu} degree compared to ${bEdu} degree)`);
+    } else if (bLevel > aLevel) {
+      reasons.push(`including higher educational attainment (${bEdu} degree compared to ${aEdu} degree)`);
     }
+  }
 
-    // Eligibility - only show if the higher has eligibility
-    if (higher.eligibility !== 'None' && higher.eligibility !== 'N/A') {
-      reasons.push(`Has CSC ${higher.eligibility} eligibility`);
-    }
+  // Eligibility comparison
+const aEligibility = candidateA.eligibility || 'None';
+const bEligibility = candidateB.eligibility || 'None';
 
-    // Training - show the higher has more
-    const aTrain = parseInt(candidateA.training) || 0;
-    const bTrain = parseInt(candidateB.training) || 0;
-    if (aTrain !== bTrain && aTrain > 0 && bTrain > 0) {
-      const higherTrain = Math.max(aTrain, bTrain);
-      const lowerTrain = Math.min(aTrain, bTrain);
-      reasons.push(`More training hours (${higherTrain} vs ${lowerTrain})`);
-    }
+if (aEligibility !== bEligibility) {
+  const higherEligibility = aScore >= bScore ? aEligibility : bEligibility;
 
-    // Experience - show the higher has more
-    const aExp = parseInt(candidateA.experience) || 0;
-    const bExp = parseInt(candidateB.experience) || 0;
-    if (aExp !== bExp && aExp > 0 && bExp > 0) {
-      const higherExp = Math.max(aExp, bExp);
-      const lowerExp = Math.min(aExp, bExp);
-      reasons.push(`More experience (${higherExp} vs ${lowerExp} years)`);
-    }
+  if (higherEligibility !== 'None' && higherEligibility !== 'N/A') {
+    reasons.push(`${higherEligibility} career service eligibility`);
+  }
+}
 
-    // Requirements met
-    const aMet = candidateA.explanation?.requirements_met || '0/0';
-    const bMet = candidateB.explanation?.requirements_met || '0/0';
-    if (aMet !== bMet) {
-      const higherMet = aScore >= bScore ? aMet : bMet;
-      const lowerMet = aScore >= bScore ? bMet : aMet;
-      reasons.push(`More requirements met (${higherMet} vs ${lowerMet})`);
-    }
+  // Training
+  const aTrain = parseInt(candidateA.training) || 0;
+  const bTrain = parseInt(candidateB.training) || 0;
 
-    if (reasons.length === 0) {
-      return `Both candidates have similar qualifications.`;
-    }
+  if (aTrain !== bTrain) {
+    const higherTrain = Math.max(aTrain, bTrain);
+    const lowerTrain = Math.min(aTrain, bTrain);
 
-    let summary = `${higher.applicant_name} is the stronger candidate because:\n`;
-    reasons.forEach((reason) => {
-      summary += `✓ ${reason}\n`;
-    });
-    return summary;
-  };
+    reasons.push(`more training hours (${higherTrain} compared to ${lowerTrain})`);
+  }
 
+  // Experience
+  const aExp = parseInt(candidateA.experience) || 0;
+  const bExp = parseInt(candidateB.experience) || 0;
+
+  if (aExp !== bExp) {
+    const higherExp = Math.max(aExp, bExp);
+    const lowerExp = Math.min(aExp, bExp);
+
+    reasons.push(`${higherExp} years of relevant work experience compared to ${lower.applicant_name}'s ${lowerExp} years`);
+  }
+
+  // Requirements met
+  const aMet = candidateA.explanation?.requirements_met || '0/0';
+  const bMet = candidateB.explanation?.requirements_met || '0/0';
+
+  if (aMet !== bMet) {
+    const higherMet = aScore >= bScore ? aMet : bMet;
+    const lowerMet = aScore >= bScore ? bMet : aMet;
+
+  }
+
+  // No differences found
+  if (reasons.length === 0) {
+    return "Both candidates have comparable qualifications based on the assessment.";
+  }
+
+  // Convert array into natural sentence
+  const reasonText = reasons.length > 1
+    ? reasons.slice(0, -1).join(", ") + ", and " + reasons[reasons.length - 1]
+    : reasons[0];
+
+  return `${higher.applicant_name} ranks higher due to stronger qualifications, ${reasonText}.`;
+};
   const exportShortlistPDF = () => {
   // Check if candidate is fully qualified
   const isFullyQualified = (candidate) => {
@@ -580,7 +606,7 @@ export default function JobCandidatesPage() {
   // NOTE
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
-  doc.text('All candidates below fully meet all minimum CSC requirements.', pageWidth / 2, 58, { align: 'center' });
+  doc.text('All candidates below satisfy the encoded qualification criteria for the position.', pageWidth / 2, 58, { align: 'center' });
 
   // METADATA
   const today = new Date().toLocaleDateString('en-US', { 
@@ -1300,109 +1326,95 @@ export default function JobCandidatesPage() {
               </div>
 
               <div className="detail-section">
-                <h4>📄 Submitted Documents</h4>
-                <ul className="docs-list">
-                  <li>
-                    {selectedApplication.docs_submitted?.pds ? (
-                      <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
-                    ) : (
-                      <span style={{ color: '#ef4444', fontSize: '14px', marginRight: '4px' }}>✕</span>
-                    )}
-                    Personal Data Sheet (PDS)
-                    {selectedApplication.docs_submitted?.pds && (
-                      <button 
-                        className="view-doc-btn"
-                        onClick={() => viewDocument(
-                          selectedApplication.job_id,
-                          selectedApplication.applicant_id,
-                          'pds',
-                          'PDS'
-                        )}
-                        style={{
-                          marginLeft: '10px',
-                          padding: '2px 10px',
-                          background: '#4f46e5',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '11px',
-                        }}
-                      >
-                        📎 View
-                      </button>
-                    )}
-                  </li>
-                  
-                  {job?.required_docs?.transcriptRecords && (
-                    <li>
-                      {selectedApplication.docs_submitted?.transcript ? (
-                        <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
-                      ) : (
-                        <span style={{ color: '#ef4444', fontSize: '14px', marginRight: '4px' }}>✕</span>
-                      )}
-                      Transcript of Records
-                      {selectedApplication.docs_submitted?.transcript && (
-                        <button 
-                          className="view-doc-btn"
-                          onClick={() => viewDocument(
-                            selectedApplication.job_id,
-                            selectedApplication.applicant_id,
-                            'transcript',
-                            'Transcript'
-                          )}
-                          style={{
-                            marginLeft: '10px',
-                            padding: '2px 10px',
-                            background: '#4f46e5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '11px',
-                          }}
-                        >
-                          📎 View
-                        </button>
-                      )}
-                    </li>
-                  )}
-                  
-                  {job?.required_docs?.performanceRating && (
-                    <li>
-                      {selectedApplication.docs_submitted?.performanceRating ? (
-                        <DocumentCheckIcon size={26} color="#10b981" style={{ marginRight: '4px' }} />
-                      ) : (
-                        <span style={{ color: '#ef4444', fontSize: '22px', marginLeft: '4px' }}>✕</span>
-                      )}
-                      Performance Rating
-                      {selectedApplication.docs_submitted?.performanceRating && (
-                        <button 
-                          className="view-doc-btn"
-                          onClick={() => viewDocument(
-                            selectedApplication.job_id,
-                            selectedApplication.applicant_id,
-                            'performanceRating',
-                            'Performance Rating'
-                          )}
-                          style={{
-                            marginLeft: '10px',
-                            padding: '2px 10px',
-                            background: '#4f46e5',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '11px',
-                          }}
-                        >
-                          📎 View
-                        </button>
-                      )}
-                    </li>
-                  )}
-                </ul>
-              </div>
+  <h4>📄 Submitted Documents</h4>
+  <ul className="docs-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+    <li style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'space-between',
+      padding: '8px 0',
+      borderBottom: '1px solid #f0f0f0'
+    }}>
+      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {selectedApplication.docs_submitted?.pds ? (
+          <DocumentCheckIcon size={26} color="#16e19d" />
+        ) : (
+          <span style={{ color: '#ef4444', fontSize: '14px' }}>✕</span>
+        )}
+        Personal Data Sheet (PDS)
+      </span>
+      {selectedApplication.docs_submitted?.pds && (
+       <JobCandidateButton 
+  onClick={() => viewDocument(
+    selectedApplication.job_id,
+    selectedApplication.applicant_id,
+    'pds',
+    'PDS'
+  )}
+/>
+      )}
+    </li>
+    
+    {job?.required_docs?.transcriptRecords && (
+      <li style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        padding: '8px 0',
+        borderBottom: '1px solid #f0f0f0'
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {selectedApplication.docs_submitted?.transcript ? (
+            <DocumentCheckIcon size={26} color="#16e19d" />
+          ) : (
+            <span style={{ color: '#ef4444', fontSize: '14px' }}>✕</span>
+          )}
+          Transcript of Records
+        </span>
+        {selectedApplication.docs_submitted?.transcript && (
+        <JobCandidateButton 
+  onClick={() => viewDocument(
+    selectedApplication.job_id,
+    selectedApplication.applicant_id,
+    'transcript',
+    'Transcript'
+  )}
+/>
+
+        )}
+      </li>
+    )}
+    
+    {job?.required_docs?.performanceRating && (
+      <li style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        padding: '8px 0',
+        borderBottom: '1px solid #f0f0f0'
+      }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {selectedApplication.docs_submitted?.performanceRating ? (
+            <DocumentCheckIcon size={26} color="#16e19d" />
+          ) : (
+            <span style={{ color: '#ef4444', fontSize: '22px' }}>✕</span>
+          )}
+          Performance Rating
+        </span>
+        {selectedApplication.docs_submitted?.performanceRating && (
+       <JobCandidateButton 
+  onClick={() => viewDocument(
+    selectedApplication.job_id,
+    selectedApplication.applicant_id,
+    'performanceRating',
+    'Performance Rating'
+  )}
+/>
+        )}
+      </li>
+    )}
+  </ul>
+</div>
 
               <div className="detail-section">
                 <h4>Qualifications</h4>
@@ -1429,7 +1441,7 @@ export default function JobCandidatesPage() {
                         <option value="PENDING">Pending</option>
                         <option value="REVIEWING">Under Review</option>
                         <option value="SHORTLISTED">Shortlisted</option>
-                        <option value="QUALIFIED">Qualified</option>
+                        <option value="INTERVIEW_SCHEDULED">For Interview</option>
                         <option value="HIRED">Hired</option>
                         <option value="NOT_SELECTED">Not Selected</option>
                         <option value="REJECTED">Rejected</option>
@@ -1553,7 +1565,7 @@ export default function JobCandidatesPage() {
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Eligibility</td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[0].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
+                        {selectedCompareCandidates[0].eligibility !== 'None' ? `CS ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
                         {(() => {
                           const actual = selectedCompareCandidates[0].eligibility || 'None';
                           const required = jobRequirements.eligibility;
@@ -1564,7 +1576,7 @@ export default function JobCandidatesPage() {
                         })()}
                       </td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[1].eligibility !== 'None' ? `CSC ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
+                        {selectedCompareCandidates[1].eligibility !== 'None' ? `CS ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
                         {(() => {
                           const actual = selectedCompareCandidates[1].eligibility || 'None';
                           const required = jobRequirements.eligibility;

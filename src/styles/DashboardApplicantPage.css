@@ -1,0 +1,119 @@
+.document-blue-icon {
+width: 34px;
+height: 34px;
+
+}
+
+.interview-blue-icon {
+width: 34px;
+height: 34px;
+ filter: 
+    sepia(600%) 
+    saturate(400%) 
+    hue-rotate(150deg) 
+    brightness(90%) 
+    contrast(120%);
+}
+
+.handshake-blue-icon {
+  width: 34px;
+  height: 34px;
+  display: block;
+  /* Duo-tone blue effect */
+  filter: 
+    sepia(600%) 
+    saturate(400%) 
+    hue-rotate(150deg) 
+    brightness(90%) 
+    contrast(120%);
+}
+
+
+.clock-blue-icon {
+width: 34px;
+height: 34px;
+ filter: 
+    sepia(600%) 
+    saturate(400%) 
+    hue-rotate(150deg) 
+    brightness(90%) 
+    contrast(120%);
+}
+
+.pin-pink-icon {
+width: 18px;
+height: 18px;
+filter: brightness(0) saturate(100%) invert(47%) sepia(63%) saturate(1204%) hue-rotate(190deg) brightness(98%) contrast(92%);
+}
+
+.mail-black-icon {
+width: 26px;
+height: 26px;
+margin-top: 2px;
+
+
+}
+.calendar-icon{
+width: 25px;
+height: 25px;
+
+}
+
+.location-icon {
+    width: 20px;
+height: 20px;
+}
+
+.app-item-location {
+  display: flex;
+  align-items: center;
+  gap: 6px; /* Space between icon and text */
+  flex-direction: row; /* Ensure it's row (default) */
+margin-left: -3px;
+}
+
+.calendarsmall-icon{
+width: 20px;
+height: 20px;
+
+}
+
+.app-item-details {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: nowrap;
+  overflow-x: auto; /* Scroll if too many items */
+}
+
+.app-item-details span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #4a6a7a;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-left: 2px;
+   gap: 10px;
+   
+}
+
+.calendarsmall-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: block;
+}
+
+.app-item-score {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+ 
+}

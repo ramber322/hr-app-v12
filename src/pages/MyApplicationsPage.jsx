@@ -3,6 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/MyApplicationsPage.css";
+import calendarLogo from '../assets/icon-calendar.png';
+import locationLogo from '../assets/icon-location.png';
+import Loader from '../components/Loader';
 
 export default function MyApplicationsPage() {
   const navigate = useNavigate();
@@ -85,8 +88,6 @@ export default function MyApplicationsPage() {
     const combinedData = applicationsData.map(app => ({
       ...app,
       job_postings: jobsMap[app.job_id] || null
-
-      
     }));
     
     setApplications(combinedData);
@@ -200,6 +201,32 @@ export default function MyApplicationsPage() {
     const years = parseInt(value) || 0;
     if (years === 0) return 'None Required';
     return years === 1 ? `${years} year` : `${years} years`;
+  };
+
+  // ===== NEW: Format education recommendation =====
+  const formatEducationRecommendation = (rec) => {
+    // Check if it's an education recommendation
+    if (rec.includes('education level')) {
+      const match = rec.match(/level (\d+).*level (\d+)/);
+      if (match) {
+        const current = parseInt(match[1]);
+        const required = parseInt(match[2]);
+        const currentLabel = EDUCATION_LABELS[current] || `Level ${current}`;
+        const requiredLabel = EDUCATION_LABELS[required] || `Level ${required}`;
+        return `Need ${requiredLabel} (currently ${currentLabel})`;
+      }
+    }
+    
+    // Training hours recommendation
+    if (rec.includes('more hours')) {
+      const match = rec.match(/(\d+) more hours/);
+      if (match) {
+        return `Complete ${match[1]} more hours of relevant training`;
+      }
+    }
+    
+    // Return as is if no match
+    return rec;
   };
 
   // FIXED: Helper to check if a requirement is met based on status
@@ -363,17 +390,17 @@ export default function MyApplicationsPage() {
           </div>
           <div className="stat-card">
             <span className="stat-number">{stats.shortlisted}</span>
-            <span className="stat-label">Shortlisted/Interview</span>
+            <span className="stat-label">For Interview</span>
           </div>
           <div className="stat-card">
             <span className="stat-number">{stats.hired}</span>
-            <span className="stat-label">Offers Received</span>
+            <span className="stat-label">Hired</span>
           </div>
         </div>
 
-        <div className="applications-list">
+        <div className="applications-list" style={{ position: 'relative' }}>
           {loading ? (
-            <div className="loading-state">Loading your applications...</div>
+            <div className="loading-state"><Loader/> </div>
           ) : applications.length === 0 ? (
             <div className="empty-state">
               <p>You haven't submitted any applications yet.</p>
@@ -398,11 +425,10 @@ export default function MyApplicationsPage() {
                     </span>
                   </div>
                   <div className="job-location">
-                    📍 {job?.place_of_assignment || 'N/A'}
+                    <img src={locationLogo} alt="location" className="location-icon" /> {job?.place_of_assignment || 'N/A'}
                   </div>
                   <div className="job-details">
-                    <span>📅 Applied: {formatDate(app.applied_date)}</span>
-                    <span>💰 Salary Grade {job?.salary_grade || 'N/A'}</span>
+                    <span><img src={calendarLogo} alt="document" className="calendar-blue-icon" /> Applied: {formatDate(app.applied_date)}</span>
                     {displayScore !== null && displayScore !== undefined && (
                       <span style={{ 
                         background: displayScore >= 80 ? '#e8f5e9' : displayScore >= 60 ? '#fff3e0' : '#ffebee',
@@ -523,7 +549,7 @@ export default function MyApplicationsPage() {
                             <div key={key} className="breakdown-item">
                               <span>{key}</span>
                               <span className={isMet ? 'breakdown-met' : 'breakdown-partial'}>
-                                {displayText} ({progressPercent}%)
+                                {displayText}
                               </span>
                             </div>
                           );
@@ -534,17 +560,17 @@ export default function MyApplicationsPage() {
                     {/* Summary - Applicant-facing */}
                     {selectedApplication.ai_explanation?.summary && (
                       <div style={{ marginTop: '8px', fontSize: '13px', color: '#6c757d' }}>
-                        {selectedApplication.ai_explanation.summary}
                       </div>
                     )}
 
-                    {/* Recommendations */}
-                    {selectedApplication.ai_explanation?.recommendations && selectedApplication.ai_explanation.recommendations.length > 0 && (
+                    {/* Recommendations - UPDATED with formatEducationRecommendation */}
+                    {selectedApplication.ai_explanation?.recommendations && 
+                     selectedApplication.ai_explanation.recommendations.length > 0 && (
                       <div className="ai-recommendations">
                         <div style={{ fontWeight: 600 }}>Recommendations</div>
                         <ul>
                           {selectedApplication.ai_explanation.recommendations.map((rec, idx) => (
-                            <li key={idx}>{rec}</li>
+                            <li key={idx}>{formatEducationRecommendation(rec)}</li>
                           ))}
                         </ul>
                       </div>
@@ -553,36 +579,41 @@ export default function MyApplicationsPage() {
                 </div>
               )}
 
-              {/* Qualifications Required */}
-              <div className="detail-section">
-                <h4>Qualifications Required</h4>
-                <div className="detail-grid">
-                  <div>
-                    <span className="detail-label">Education</span>
-                    <span className="detail-value">
-                      {getEducationLabel(selectedApplication.job_postings?.qualifications?.education)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Eligibility</span>
-                    <span className="detail-value">
-                      {getEligibilityLabel(selectedApplication.job_postings?.qualifications?.eligibility)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Training</span>
-                    <span className="detail-value">
-                      {getTrainingLabel(selectedApplication.job_postings?.qualifications?.training)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Work Experience</span>
-                    <span className="detail-value">
-                      {getExperienceLabel(selectedApplication.job_postings?.qualifications?.workExperience)}
-                    </span>
-                  </div>
-                </div>
-              </div>
+    {/* Qualifications Required */}
+<div className="detail-section">
+  <h4>Qualifications Required</h4>
+  <div className="detail-grid">
+    <div>
+      <span className="detail-label">Education</span>
+      <span className="detail-value">
+        {(() => {
+          const val = selectedApplication.job_postings?.required_education;
+          if (val === undefined || val === null || val === '') return 'None Required';
+          const num = parseInt(val);
+          return !isNaN(num) ? EDUCATION_LABELS[num] || val : val;
+        })()}
+      </span>
+    </div>
+    <div>
+      <span className="detail-label">Eligibility</span>
+      <span className="detail-value">
+        {selectedApplication.job_postings?.required_eligibility || 'None Required'}
+      </span>
+    </div>
+    <div>
+      <span className="detail-label">Training</span>
+      <span className="detail-value">
+        {selectedApplication.job_postings?.required_training || 'None Required'}
+      </span>
+    </div>
+    <div>
+      <span className="detail-label">Work Experience</span>
+      <span className="detail-value">
+        {selectedApplication.job_postings?.required_work_experience || 'None Required'} 
+      </span>
+    </div>
+  </div>
+</div>
 
               <div className="detail-section">
                 <h4>Application Status</h4>

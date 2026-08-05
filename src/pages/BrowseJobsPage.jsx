@@ -5,7 +5,9 @@ import { supabase } from "../lib/supabase";
 import { getJobPostings } from "../services/jobService";
 import '../styles/BrowseJobsPage.css';
 import { CalendarColoredIcon } from "../components/icons/CustomIcons";
-
+import calendarLogo from '../assets/icon-calendar.png'
+import Loader from '../components/Loader';
+;
 // =========================
 // PYTHON API URL
 // =========================
@@ -764,9 +766,10 @@ export default function BrowseJobsPage() {
           </select>
         </div>
 
-        <div className="jobs-grid">
+        <div className="jobs-grid" style={{ position: 'relative' }}>
           {loading ? (
-            <div className="loading-state">Loading jobs...</div>
+            <div className="loading-state"><Loader/> </div>
+             
           ) : filteredJobs.length === 0 ? (
             <div className="empty-state">No job vacancies found</div>
           ) : (
@@ -780,7 +783,7 @@ export default function BrowseJobsPage() {
                   <span className="job-detail-item">Item No: {job.item_no}</span>
                 </div>
                 <div className="job-deadline">
-                  <CalendarColoredIcon /> Closing Date: {job.closing_date}
+                  <img src={calendarLogo} alt="calendar" className="calendar-blue-icon" /> Closing Date: {job.closing_date}
                 </div>
                 <div className="button-group">
                   <button 

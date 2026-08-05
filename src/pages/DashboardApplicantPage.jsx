@@ -3,7 +3,17 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import { TimeSandIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
-
+import calendarLogo from '../assets/icon-calendar.png';
+import locationLogo from '../assets/icon-location.png';
+import '/src/styles/DashboardApplicantPage.css';
+import pinPinkLogo from '../assets/pin-pink-icon.png';
+import mailBlackLogo from '../assets/mail-blue-icon.png';
+import documentBlueLogo from '../assets/document-blue-icon.png';
+import clockBlueLogo from '../assets/clock-blue-icon.png';
+import handshakeBlueLogo from '../assets/handshake-blue-icon.png';
+import interviewBlueLogo from '../assets/interview-blue-icon.png';
+import WeatherWidget from "../components/WeatherWidget";
+import Loader from '../components/Loader';
 
 export default function DashboardApplicant() {
   const navigate = useNavigate();
@@ -27,13 +37,11 @@ export default function DashboardApplicant() {
         return;
       }
 
-      // Set user name
       const metadata = user.user_metadata || {};
       const firstName = metadata.first_name || "";
       const surname = metadata.surname || "";
       setUserName(firstName && surname ? `${firstName} ${surname}` : user.email || "User");
 
-      // Set today's date
       const today = new Date();
       setTodayDate(today.toLocaleDateString('en-US', { 
         year: 'numeric', 
@@ -199,7 +207,6 @@ export default function DashboardApplicant() {
       font-size: 24px;
       margin-top: 4px;
     }
-      
 
     .stats-cards {
       display: grid;
@@ -346,7 +353,6 @@ export default function DashboardApplicant() {
     }
 
     .notification-item {
-      padding: 10px 0;
       border-bottom: 1px solid #f0f0f0;
     }
 
@@ -355,7 +361,6 @@ export default function DashboardApplicant() {
     }
 
     .notification-item.unread {
-      border-left: 3px solid #4f46e5;
       padding-left: 12px;
     }
 
@@ -388,26 +393,92 @@ export default function DashboardApplicant() {
       padding: 60px;
       color: #6c757d;
     }
-      .stat-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-  .stat-icon svg {
-  width: 25px;
-  height: 25px;
-}
 
-h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+    .stat-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
 
-h3 svg {
-  width: 20px;
-  height: 20px;
-}
+    .stat-icon svg {
+      width: 25px;
+      height: 25px;
+    }
+
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* ===== WEATHER & NOTIFICATIONS COMBINED CARD ===== */
+    .weather-notification-card {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .weather-notification-card .weather-card {
+      border-radius: 12px 12px 0 0;
+      margin-bottom: 0;
+    }
+
+    .card-divider {
+      height: 1px;
+      background: #e9ecef;
+      margin: 0 20px;
+    }
+
+    .weather-notification-card .card-header {
+      padding-top: 12px;
+      padding-bottom: 12px;
+    }
+
+    .weather-notification-card .card-body {
+      flex: 1;
+    }
+
+    /* Make weather card fit nicely */
+    .weather-notification-card .weather-card {
+      height: 180px;
+      padding: 16px;
+    }
+
+    .weather-notification-card .weather-temp {
+      font-size: 40px;
+      line-height: 50px;
+      bottom: 10px;
+      left: 16px;
+    }
+
+    .weather-notification-card .weather-temp-scale {
+      bottom: 14px;
+      right: 16px;
+      width: 60px;
+      height: 26px;
+    }
+
+    .weather-notification-card .weather-temp-scale span {
+      font-size: 11px;
+    }
+
+    .weather-notification-card .weather-card-header span:first-child {
+      font-size: 13px;
+    }
+
+    .weather-notification-card .weather-card-header span:last-child {
+      font-size: 12px;
+    }
+
+    .weather-notification-card .weather-container {
+      transform: scale(0.6);
+      right: -50px;
+      top: -60px;
+    }
 
     @media (max-width: 768px) {
       .dashboard-container { padding: 16px; padding-top: 80px; }
@@ -422,6 +493,7 @@ h3 svg {
         <Navbar userRole="applicant" />
         <div className="dashboard-container">
           <style>{styles}</style>
+          <Loader/>
           <div className="loading-state">Loading dashboard...</div>
         </div>
       </>
@@ -434,46 +506,45 @@ h3 svg {
       <div className="dashboard-container">
         <style>{styles}</style>
 
-       <div className="dashboard-header">
-  <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-    Welcome back, {userName}
-  </h1>
-  <div className="date-display">
-  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
-    <CalendarColoredIcon  size={30} />
-    {todayDate}
-  </span>
-</div>
-</div>
+        <div className="dashboard-header">
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            Welcome, {userName}
+          </h1>
+          <div className="date-display">
+            <span style={{ fontSize: '15px', opacity: '0.5', display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
+              Explore your dashboard to unlock powerful tools tailored for your goals.
+            </span>
+          </div>
+        </div>
 
         <div className="stats-cards">
           <div className="stat-card">
-            <span className="stat-icon"><DocumentApplicantDashboardIcon/></span>
+            <span className="stat-icon"><img src={documentBlueLogo} alt="document" className="document-blue-icon" /></span>
             <span className="stat-number">{stats.total}</span>
             <span className="stat-label">Total Applications</span>
           </div>
           <div className="stat-card">
-            <span className="stat-icon"><TimeSandIcon size={20} /></span>
+            <span className="stat-icon"><img src={clockBlueLogo} alt="Calendar" className="clock-blue-icon" /></span>
             <span className="stat-number">{stats.pending}</span>
             <span className="stat-label">Pending Review</span>
           </div>
           <div className="stat-card">
-            <span className="stat-icon">✅</span>
+            <span className="stat-icon"> <img src={interviewBlueLogo} alt="interview" className="interview-blue-icon" /></span>
             <span className="stat-number">{stats.shortlisted}</span>
-            <span className="stat-label">Shortlisted / Interview</span>
+            <span className="stat-label">For Interview</span>
           </div>
           <div className="stat-card">
-            <span className="stat-icon">🎉</span>
+            <span className="stat-icon"> <img src={handshakeBlueLogo} alt="handshake" className="handshake-blue-icon" /></span>
             <span className="stat-number">{stats.hired}</span>
-            <span className="stat-label">Offers Received</span>
+            <span className="stat-label">Hired</span>
           </div>
         </div>
 
         <div className="dashboard-grid">
-          {/* Recent Applications */}
+          {/* Recent Applications - Full height */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3><ColoredPushPinIcon/> Recent Applications</h3>
+              <h3> <img src={pinPinkLogo} alt="pin" className="pin-pink-icon" /> Recent Applications</h3>
               <span className="view-all" onClick={() => navigate('/applicant/applications')}>
                 View All →
               </span>
@@ -499,7 +570,7 @@ h3 svg {
                       <div className="app-item-header">
                         <div>
                           <div className="app-item-title">{job.position_title || 'Position Not Found'}</div>
-                          <div className="app-item-location">📍 {job.place_of_assignment || 'N/A'}</div>
+                          <div className="app-item-location">  <img src={locationLogo} alt="Calendar" className="location-icon" /> {job.place_of_assignment || 'N/A'}</div>
                         </div>
                         <span 
                           className="app-item-status"
@@ -509,8 +580,7 @@ h3 svg {
                         </span>
                       </div>
                       <div className="app-item-details">
-                        <span>📅 {formatDate(app.applied_date)}</span>
-                        <span>💰 SG {job.salary_grade || 'N/A'}</span>
+                        <span><img src={calendarLogo} alt="Calendar" className="calendarsmall-icon" /> {formatDate(app.applied_date)}</span>
                         {score > 0 && (
                           <span 
                             className="app-item-score"
@@ -527,33 +597,40 @@ h3 svg {
             </div>
           </div>
 
-          {/* Recent Notifications */}
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h3>🔔 Recent Notifications</h3>
-              <span className="view-all" onClick={() => navigate('/applicant/applications')}>
-                View All →
-              </span>
-            </div>
-            <div className="card-body">
-              {recentNotifications.length === 0 ? (
-                <div className="empty-state">
-                  <span className="icon">🔕</span>
-                  No notifications yet
-                </div>
-              ) : (
-                recentNotifications.map((notification) => (
-                  <div 
-                    key={notification.id} 
-                    className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
-                  >
-                    <div className="notification-message">{notification.message}</div>
-                    <div className="notification-time">{formatTime(notification.created_at)}</div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+         {/* Combined Card: Notifications + Weather */}
+<div className="dashboard-card weather-notification-card">
+  {/* Notifications - ON TOP */}
+  <div className="card-header">
+    <h3><img src={mailBlackLogo} alt="mail" className="mail-black-icon" /> Recent Notifications</h3>
+    <span className="view-all" onClick={() => navigate('/applicant/applications')}>
+      View All →
+    </span>
+  </div>
+  <div className="card-body notifications-body">
+    {recentNotifications.length === 0 ? (
+      <div className="empty-state">
+        <span className="icon">🔕</span>
+        No notifications yet
+      </div>
+    ) : (
+      recentNotifications.map((notification) => (
+        <div 
+          key={notification.id} 
+          className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
+        >
+          <div className="notification-message">{notification.message}</div>
+          <div className="notification-time">{formatTime(notification.created_at)}</div>
+        </div>
+      ))
+    )}
+  </div>
+  
+  {/* Divider */}
+  <div className="card-divider"></div>
+  
+  {/* Weather Widget - BELOW */}
+  <WeatherWidget />
+</div>
         </div>
       </div>
     </>

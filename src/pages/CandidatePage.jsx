@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import { BriefcaseIcon, ConfettiIcon,  DocumentListIcon } from "../components/icons/CustomIcons";
+import Loader from '../components/Loader';
 
 export default function CandidatesPage() {
   const navigate = useNavigate();
@@ -426,7 +427,7 @@ export default function CandidatesPage() {
   display: 'flex', 
   alignItems: 'center', 
   gap: '10px',
-  background: '#f0eded',
+  background: '#cde6ff',
   padding: '12px 20px',
   borderRadius: '8px',
   margin: 0
@@ -508,8 +509,8 @@ export default function CandidatesPage() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8">
-                    <div className="loading-state">Loading applications...</div>
+                  <td colSpan="8" style={{ position: 'relative' }} >
+                    <div className="loading-state"><Loader/></div>
                   </td>
                 </tr>
               ) : filteredApplications.length === 0 ? (

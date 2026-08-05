@@ -674,3 +674,10 @@ hr {
   .success-popup .popup-actions { flex-direction: column; }
   .applied-summary-box { flex-direction: column; text-align: center; gap: 8px; }
 }
+
+
+.calendar-blue-icon{
+  height: 18px;
+  width: 18px;
+  margin-left: 5px;
+}
