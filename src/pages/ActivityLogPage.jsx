@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/ActivityLogPage.css";
-import { ActivityLogDocument } from "../components/icons/CustomIcons";
+import clipboardactivitylogLogo from '../assets/clipboard-activitylog-icon.png';
+import { BriefcaseActivityLogIcon, UpdatedPencilActivityLogIcon, MailActivityLogIcon, UserAddActivityLogIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
 export default function ActivityLogPage() {
@@ -146,11 +147,11 @@ export default function ActivityLogPage() {
 
   const getActionIcon = (type) => {
     const icons = {
-      job_created: '📌',
+        job_created: <BriefcaseActivityLogIcon size={18} color="#2e9a55" />,
       job_updated: '✏️',
-      application_submitted: '📩',
-      status_update: '🔄',
-      user_registered: '👤',
+      application_submitted: <MailActivityLogIcon size={18} style={{ color: '#1a56db' }} />,
+      status_update: <UpdatedPencilActivityLogIcon size={18} color="#968309" />,
+      user_registered: <UserAddActivityLogIcon size={18} style={{ color: '#1a56db' }} />,
     };
     return icons[type] || '📋';
   };
@@ -406,9 +407,18 @@ export default function ActivityLogPage() {
 
         <div className="page-header">
          <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  <ActivityLogDocument  /> Activity Log
+<img 
+  src={clipboardactivitylogLogo} 
+  alt="Activity Log" 
+  style={{ 
+    width: 38, 
+    height: 38,
+    filter: 'brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%)'
+  }} 
+/>
+Activity Logs
 </h1>
-          <p>Track all actions within the system</p>
+          <p>Track actions made within the system</p>
         </div>
 
         <div className="controls">

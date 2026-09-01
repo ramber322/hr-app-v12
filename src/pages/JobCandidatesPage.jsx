@@ -6,8 +6,11 @@ import Navbar from "../components/Navbar";
 import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
-import { DocumentCheckIcon } from "../components/icons/CustomIcons";
+import { DocumentCheckIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
 import JobCandidateButton from "../components/JobCandidateButton";
+import communityLogo from '../assets/community3-icon.png';
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
+import compareplumpLogo from '../assets/compare-plump-icon.png';
 
 export default function JobCandidatesPage() {
   const { jobId } = useParams();
@@ -930,10 +933,21 @@ if (aEligibility !== bEligibility) {
 
       <div className="candidate-container">
         <div className="page-header">
-          <div className="back-link" onClick={() => navigate(returnPath)}>
-            ← Back
+          <div className="back-link" onClick={() => navigate(returnPath)} 
+           style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '1px',
+    cursor: 'pointer'
+  }}
+  >
+           <ReverseTabArrowIcon/> <span> Back </span>
           </div>
-          <h1>👥 Candidates for {job?.position_title || 'Loading...'}</h1>
+          <h1 style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+          <img src={communityLogo} alt="Community"
+           style={{ width: 28, height: 28, verticalAlign: 'middle', marginRight: '10px',
+          filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }} />
+          Candidates for {job?.position_title || 'Loading...'}</h1>
           <p>Showing {candidates.length} applicant(s) for this position</p>
         </div>
 
@@ -1019,19 +1033,7 @@ if (aEligibility !== bEligibility) {
               >
                 AI Score {sortBy === "ai_score" && (sortOrder === "desc" ? "↓" : "↑")}
               </button>
-              <button
-                className={`sort-btn ${sortBy === "status" ? "active" : ""}`}
-                onClick={() => {
-                  if (sortBy === "status") {
-                    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
-                  } else {
-                    setSortBy("status");
-                    setSortOrder("asc");
-                  }
-                }}
-              >
-                Status {sortBy === "status" && (sortOrder === "asc" ? "↑" : "↓")}
-              </button>
+         
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
@@ -1055,20 +1057,31 @@ if (aEligibility !== bEligibility) {
                       ✕ Clear
                     </button>
                     {selectedCompareCandidates.length === 2 && (
-                      <button 
+                     <button 
                         onClick={openCompareModal}
                         style={{
-                          padding: '8px 16px',
-                          background: '#4f46e5',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '6px',
-                          cursor: 'pointer',
-                          fontWeight: '600',
-                          fontSize: '13px'
+                          display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    padding: '8px 16px',
+    background: '#4f46e5',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '13px'
                         }}
                       >
-                        📊 Compare
+                          <img 
+    src={compareplumpLogo} 
+    alt="compare" 
+    style={{ 
+      width: 16, 
+      height: 16,
+      filter: 'brightness(0) saturate(100%) invert(100%) brightness(200%)'
+    }} 
+  />  Compare
                       </button>
                     )}
                   </>
@@ -1102,9 +1115,9 @@ if (aEligibility !== bEligibility) {
                     <th>Name</th>
                     <th>Documents</th>
                     <th>Score</th>
-                    <th>XAI</th>
-                    <th>Status</th>
-                    <th>Action</th>
+                    <th className="xai-column">XAI</th>
+                    <th className="status-column">Status</th>
+                    <th className="action-column">Action</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1133,9 +1146,20 @@ if (aEligibility !== bEligibility) {
                             </div>
                           </td>
                           <td>
-                            <span className={`doc-status ${docsComplete ? 'doc-complete' : 'doc-incomplete'}`}>
-                              {docsComplete ? '✅ Complete' : '❌ Incomplete'}
-                            </span>
+                                     <span 
+  className={`doc-status ${docsComplete ? 'doc-complete' : 'doc-incomplete'}`}
+  style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+>
+  {docsComplete ? (
+    <>
+      <CheckSquareIcon size={16}  /> Complete
+    </>
+  ) : (
+    <>
+      <span style={{ color: '#ef4444', fontSize: '16px' }}>✕</span> Incomplete
+    </>
+  )}
+</span>
                           </td>
                           <td>
                             <span
@@ -1149,14 +1173,19 @@ if (aEligibility !== bEligibility) {
                             </span>
                           </td>
                           <td>
-                            <button 
+                              <button 
                               className="explain-btn"
                               onClick={() => {
                                 setSelectedForExplain(candidate);
                                 setShowExplainModal(true);
                               }}
+                               style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px'
+    }}
                             >
-                              🔍 XAI
+                             <MagnifyingGlassPlumpIcon size={15} style={{ color: '#1a56db' }} /> XAI
                             </button>
                           </td>
                           <td>
@@ -1182,20 +1211,40 @@ if (aEligibility !== bEligibility) {
                               >
                                 View
                               </button>
-                              <button
-                                onClick={() => toggleCompare(candidate)}
-                                style={{
-                                  padding: '4px 8px',
-                                  fontSize: '11px',
-                                  background: isSelected ? '#4f46e5' : '#e9ecef',
-                                  color: isSelected ? 'white' : '#4a5568',
-                                  border: isSelected ? 'none' : '1px solid #dee2e6',
-                                  borderRadius: '4px',
-                                  cursor: 'pointer'
-                                }}
-                              >
-                                {isSelected ? '✓ Selected' : '📊 Compare'}
-                              </button>
+                             <button
+  onClick={() => toggleCompare(candidate)}
+  style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '4px',
+    padding: '4px 8px',
+    fontSize: '11px',
+    background: isSelected ? '#4f46e5' : '#e9ecef',
+    color: isSelected ? 'white' : '#4a5568',
+    border: isSelected ? 'none' : '1px solid #dee2e6',
+    borderRadius: '4px',
+    cursor: 'pointer'
+  }}
+>
+  {isSelected ? (
+    <>
+      <span>✓</span> Selected
+    </>
+  ) : (
+    <>
+      <img 
+        src={compareplumpLogo} 
+        alt="compare" 
+        style={{ 
+          width: 16, 
+          height: 16,
+          filter: isSelected ? 'none' : 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+        }} 
+      />
+      Compare
+    </>
+  )}
+</button>
                             </div>
                           </td>
                         </tr>
@@ -1245,7 +1294,9 @@ if (aEligibility !== bEligibility) {
                   e.target.style.boxShadow = '0 2px 8px rgba(79, 70, 229, 0.3)';
                 }}
               >
-                📅 View Interview Schedule
+                <img src={calendarminimalLogo} alt="Community"
+           style={{ width: 18, height: 18,
+          filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }} /> View Interview Schedule
               </button>
             </div>
           </>
@@ -1257,7 +1308,10 @@ if (aEligibility !== bEligibility) {
         <div className="modal-overlay" onClick={() => setShowExplainModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>🔍 XAI Explanation</h3>
+             <h3 style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+  <MagnifyingGlassPlumpIcon size={26} style={{ color: '#1a56db' }} />
+  XAI Explanation
+</h3>
               <button className="close-modal" onClick={() => setShowExplainModal(false)}>×</button>
             </div>
             <div className="modal-body">
@@ -1480,7 +1534,18 @@ if (aEligibility !== bEligibility) {
         <div className="modal-overlay" onClick={() => setShowCompareModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '900px' }}>
             <div className="modal-header">
-              <h3>📊 Compare Candidates</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+  <img 
+    src={compareplumpLogo} 
+    alt="compare" 
+    style={{ 
+      width: 26, 
+      height: 26,
+      filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+    }} 
+  />
+  Compare Candidates
+</h3>
               <button className="close-modal" onClick={() => setShowCompareModal(false)}>×</button>
             </div>
             <div className="modal-body">
@@ -1682,9 +1747,17 @@ if (aEligibility !== bEligibility) {
               </div>
 
               <div style={{ marginTop: '20px', padding: '16px', background: '#f8f9fa', borderRadius: '10px' }}>
-                <h4 style={{ margin: '0 0 8px 0', fontSize: '14px', color: '#1a1f36' }}>
-                  📊 Comparison Summary:
-                </h4>
+               <h4 style={{ 
+  margin: '0 0 8px 0', 
+  fontSize: '14px', 
+  color: '#1a1f36',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '6px'
+}}>
+  <JusticePlumpIcon size={18} />
+  Comparison Summary:
+</h4>
                 <div style={{ fontSize: '14px', color: '#4a5568', whiteSpace: 'pre-line' }}>
                   {getComparisonSummary(selectedCompareCandidates[0], selectedCompareCandidates[1])}
                 </div>

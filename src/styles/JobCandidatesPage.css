@@ -23,17 +23,28 @@
 }
 
 .back-link {
-  display: inline-block;
-  margin-bottom: 12px;
-  color: #4f46e5;
-  text-decoration: none;
-  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   cursor: pointer;
+  text-decoration: none;
+  color: #6a6a6c;
+  transition: all 0.2s ease;
+  
 }
 
 .back-link:hover {
-  text-decoration: underline;
+  color: #1a2b6b;
+  transform: translateX(-3px); /* Moves everything together */
 }
+
+.back-link span {
+  text-decoration: none;
+  margin-bottom: 2px;
+  text-decoration: inherit;
+}
+
+
 
 .loading-state {
   text-align: center;
@@ -536,4 +547,38 @@ tr:hover {
   th, td { padding: 10px 8px; }
   .job-req-note { flex-direction: column; gap: 8px; }
   .status-update-section { flex-wrap: wrap; }
+}
+
+.number-column {
+  width: 5%;
+  text-align: center;
+}
+
+.name-column {
+  width: 20%;
+  text-align: left;
+}
+
+.documents-column {
+  width: 20%;
+  text-align: left;
+}
+
+.score-column {
+  width: 10%;
+  text-align: center;
+}
+
+.xai-column {
+
+  padding-left: 30px;
+}
+
+.status-column {
+  padding-left: 20px;
+  
+}
+
+.action-column {
+ padding-left: 45px;
 }

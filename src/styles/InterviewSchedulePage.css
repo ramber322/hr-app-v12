@@ -374,7 +374,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 16px 24px;
-  border-bottom: 1px solid #e9ecef;
+  border-bottom: 1px solid #c6c7c8 !important;
 }
 
 .modal-header h3 {
@@ -763,4 +763,27 @@
 .profile-item .tbd-text {
   color: #856404;
   font-weight: 500;
+}
+
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  text-decoration: none;
+  color: #6a6a6c;
+  transition: all 0.2s ease;
+  
+}
+
+.back-btn:hover {
+  color: #1a2b6b;
+  transform: translateX(-3px); /* Moves everything together */
+}
+
+.back-btn span {
+  text-decoration: none;
+  margin-bottom: 2px;
+  text-decoration: inherit;
 }

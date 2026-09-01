@@ -3,6 +3,16 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
 import "../styles/InterviewSchedulePage.css";
+import { CalendarMarkBlueIcon } from "../components/icons/CustomIcons";
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
+import mailblackLogo from '../assets/mail-black-icon.png';
+import calendarplumpLogo from '../assets/calendar-plump-icon.png';
+import locationplumpLogo from '../assets/location-plump-icon.png';
+import noteplumpLogo from '../assets/note-plump-icon.png';
+import phoneLogo from '../assets/phone-icon.png';
+
+import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon, CircleIcon, CheckInterviewIcon, UserBookIcon   } from "../components/icons/CustomIcons";
+
 import { 
   getJobInterviews, 
   batchScheduleInterviews, 
@@ -137,11 +147,11 @@ export default function InterviewSchedulePage() {
 
   const getStatusIcon = (status) => {
     switch(status) {
-      case 'SCHEDULED': return '⏳';
-      case 'COMPLETED': return '✅';
-      case 'CANCELLED': return '❌';
-      case 'NO_SHOW': return '🚫';
-      case 'RESCHEDULED': return '🔄';
+      case 'SCHEDULED': return '';
+      case 'COMPLETED': return '';
+      case 'CANCELLED': return '';
+      case 'NO_SHOW': return '';
+      case 'RESCHEDULED': return '';
       default: return '⏳';
     }
   };
@@ -439,10 +449,29 @@ export default function InterviewSchedulePage() {
             <button 
               className="back-btn"
               onClick={goBackToCandidates}
+               style={{ 
+    display: 'flex', 
+    alignItems: 'center', 
+    gap: '1px',
+    cursor: 'pointer',
+     textDecoration: 'none'
+  }}
+  
             >
-              ← Back to Candidates
+              <ReverseTabArrowIcon/> <span> Back </span>
             </button>
-            <h1>📅 Interview Schedule</h1>
+           <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+  <img src={calendarminimalLogo} alt="Calendar" style={{ width: 24, height: 24,
+     filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+         
+
+
+
+
+
+   }} />
+  Interview Schedule
+</h1>
             <p className="subtitle">
               {job?.position_title || 'Loading...'} • {interviews.length} total interviews
             </p>
@@ -497,13 +526,13 @@ export default function InterviewSchedulePage() {
                 onChange={(e) => setFilterStatus(e.target.value)}
                 className="filter-select"
               >
-                <option value="ACTIVE">🟢 Active (Scheduled)</option>
-                <option value="ALL">📋 All Status</option>
-                <option value="SCHEDULED">⏳ Scheduled</option>
-                <option value="COMPLETED">✅ Completed</option>
-                <option value="NO_SHOW">🚫 No Show</option>
-                <option value="CANCELLED">❌ Cancelled</option>
-                <option value="RESCHEDULED">🔄 Rescheduled (History)</option>
+                <option value="ACTIVE">  Active (Scheduled)</option>
+                <option value="ALL"> All Status</option>
+                <option value="SCHEDULED"> Scheduled</option>
+                <option value="COMPLETED"> Completed</option>
+                <option value="NO_SHOW"> No Show</option>
+                <option value="CANCELLED"> Cancelled</option>
+                <option value="RESCHEDULED"> Rescheduled (History)</option>
               </select>
             </div>
 
@@ -514,8 +543,8 @@ export default function InterviewSchedulePage() {
                 onChange={(e) => setSortBy(e.target.value)}
                 className="filter-select"
               >
-                <option value="date">📅 Date (Soonest)</option>
-                <option value="score">🎯 Score (Highest)</option>
+                <option value="date"> Date (Soonest)</option>
+                <option value="score"> Score (Highest)</option>
               </select>
             </div>
           </div>
@@ -530,8 +559,17 @@ export default function InterviewSchedulePage() {
               className="btn-schedule-batch"
               onClick={openScheduleModal}
               disabled={selectedApplicants.length === 0}
+               style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px'
+  }}
+
             >
-              📅 Schedule Selected ({selectedApplicants.length})
+              <img src={calendarminimalLogo} alt="Calendar" style={{ width: 16, height: 16,
+     filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+         
+   }} /> Schedule Selected ({selectedApplicants.length})
             </button>
           </div>
         </div>
@@ -543,7 +581,15 @@ export default function InterviewSchedulePage() {
           <div className="table-container">
             {filteredAndSortedInterviews.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon">📅</div>
+                <div className="empty-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>
+  <img src={calendarminimalLogo} alt="Calendar" style={{ width: 50, height: 50,
+     filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+         
+   }} />
+
+
+
+                </div>
                 <h3>No interviews found</h3>
                 <p>
                   {filterStatus !== "ACTIVE" && filterStatus !== "ALL"
@@ -625,9 +671,9 @@ export default function InterviewSchedulePage() {
                             ) : (
                               <div className="datetime-cell">
                                 <div>{formatDate(interview.scheduled_date)}</div>
-                                <div className="time">{formatTime(interview.scheduled_date)}</div>
+                                <div className="time" >{formatTime(interview.scheduled_date)}</div>
                                 {interview.duration_minutes && (
-                                  <div className="duration">⏱️ {interview.duration_minutes} min</div>
+                                  <div className="duration" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><AlarmClockIcon size={16} style={{ color: 'blue' }} /> {interview.duration_minutes} min</div>
                                 )}
                               </div>
                             )}
@@ -676,7 +722,7 @@ export default function InterviewSchedulePage() {
                                     onClick={() => handleAction(interview, 'complete')}
                                     title="Complete"
                                   >
-                                    ✅
+                                    <CheckInterviewIcon size={18} />
                                   </button>
                                   <button 
                                     className="btn-noshow"
@@ -690,7 +736,11 @@ export default function InterviewSchedulePage() {
                                     onClick={() => openRescheduleModal(interview)}
                                     title="Reschedule"
                                   >
-                                    📅
+                                    <img src={calendarminimalLogo} alt="Calendar" style={{ width: 14, height: 14,
+     filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+                                    }}
+                                    />         
+
                                   </button>
                                   <button 
                                     className="btn-cancel"
@@ -702,7 +752,7 @@ export default function InterviewSchedulePage() {
                                 </>
                               )}
                               {isTBD && (
-                                <span className="status-label-tbd">⏳ Pending Schedule</span>
+                                <span className="status-label-tbd"> Pending Schedule</span>
                               )}
                               {interview.status !== 'SCHEDULED' && interview.status !== undefined && !isTBD && (
                                 <span className="status-label-done">
@@ -850,7 +900,7 @@ export default function InterviewSchedulePage() {
         <div className="modal-overlay" onClick={() => setShowRescheduleModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>📅 Reschedule Interview</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }} ><img src={calendarminimalLogo} alt="Calendar" style={{ width: 19, height: 19, filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }} /> Reschedule Interview</h3>
               <button className="close-modal" onClick={() => setShowRescheduleModal(false)}>×</button>
             </div>
             <div className="modal-body">
@@ -974,27 +1024,50 @@ export default function InterviewSchedulePage() {
       {/* Profile Modal */}
       {showProfileModal && selectedApplicant && (
         <div className="modal-overlay" onClick={() => setShowProfileModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px', width: '100%' }}>
             <div className="modal-header">
-              <h3>👤 {getApplicantName(selectedApplicant)}</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><UserBookIcon size={28} style={{ color: '#1a56db' }} /> {getApplicantName(selectedApplicant)}</h3>
               <button className="close-modal" onClick={() => setShowProfileModal(false)}>×</button>
             </div>
             <div className="modal-body">
               <div className="profile-details">
                 <div className="profile-item">
-                  <span className="profile-label">📧 Email</span>
+                  <span className="profile-label" style={{ display: 'flex', alignItems: 'center', }} >   <img 
+      src={mailblackLogo} 
+      alt="email" 
+      style={{ 
+        width: 18, 
+        height: 18, 
+        marginRight: '7px',
+        filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+      }} 
+    /> Email</span>
                   <span>{getApplicantEmail(selectedApplicant)}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-label">📱 Phone</span>
+                  <span className="profile-label" style={{ display: 'flex', alignItems: 'center', }}>  <img 
+      src={phoneLogo} 
+      alt="phone" 
+      style={{ 
+        width: 17, 
+        height: 17, 
+        marginRight: '7px',
+        filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+      }} /> Phone</span>
                   <span>{getApplicantPhone(selectedApplicant)}</span>
                 </div>
+               
                 <div className="profile-item">
-                  <span className="profile-label">🎯 AI Score</span>
-                  <span className="score-highlight">{getAIScore(selectedApplicant)}%</span>
-                </div>
-                <div className="profile-item">
-                  <span className="profile-label">📅 Interview</span>
+                  <span className="profile-label" style={{ display: 'flex', alignItems: 'center', }}>  <img 
+      src={calendarplumpLogo} 
+      alt="calendar" 
+      style={{ 
+        width: 17, 
+        height: 17, 
+        marginRight: '7px',
+        filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+      }} 
+    /> Schedule</span>
                   <span>
                     {selectedApplicant.scheduled_date ? (
                       `${formatDate(selectedApplicant.scheduled_date)} at ${formatTime(selectedApplicant.scheduled_date)}`
@@ -1004,15 +1077,33 @@ export default function InterviewSchedulePage() {
                   </span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-label">📍 Location</span>
+                  <span className="profile-label" style={{ display: 'flex', alignItems: 'center', }} >   <img 
+      src={locationplumpLogo} 
+      alt="location" 
+      style={{ 
+        width: 17, 
+        height: 17, 
+        marginRight: '7px',
+        filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+      }} 
+    /> Location</span>
                   <span>{selectedApplicant.location || 'TBD'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-label">📝 Notes</span>
+                  <span className="profile-label" style={{ display: 'flex', alignItems: 'center', }} >   <img 
+      src={noteplumpLogo} 
+      alt="notes" 
+      style={{ 
+        width: 17, 
+        height: 17, 
+        marginRight: '7px',
+        filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+      }} 
+    /> Notes</span>
                   <span>{selectedApplicant.description || 'No notes'}</span>
                 </div>
                 <div className="profile-item">
-                  <span className="profile-label">Status</span>
+                  <span className="profile-label" style={{ display: 'flex', alignItems: 'center', }} > <StatusIcon size={20} /> Status</span>
                   <span className="status-badge" style={{
                     backgroundColor: getStatusColor(selectedApplicant.status).bg,
                     color: getStatusColor(selectedApplicant.status).color,

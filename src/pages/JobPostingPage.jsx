@@ -6,6 +6,9 @@ import '/src/styles/JobPostingPage.css';
 import { CalendarIcon, CalendarColoredIcon, DocumentMonoIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png';
 import Loader from '../components/Loader';
+import communityLogo from '../assets/community-icon.png';
+import calendarclockLogo from '../assets/calendar-clock-icon.png';
+import clipboardactivitylogLogo from '../assets/clipboard-activitylog-icon.png';
 
 // =========================
 // POSITION TITLES (Combined with Level)
@@ -109,8 +112,8 @@ const EDUCATION_LABELS = {
 // =========================
 const ELIGIBILITY_OPTIONS = [
   { label: "None Required", value: "none" },
-  { label: "Career Service Subprofessional", value: "subprofessional" },
-  { label: "Career Service Professional", value: "professional" },
+  { label: "Civil Service Subprofessional", value: "subprofessional" },
+  { label: "Civil Service Professional", value: "professional" },
 ];
 
 // =========================
@@ -421,7 +424,7 @@ export default function JobPostingPage() {
                   <DocumentMonoIcon/> {job.applicants_count || 0} applicant(s) applied
                 </div>
                 <div className="job-deadline">
-                  <img src={calendarLogo} alt="Calendar" className="calendar-icon" /> Closing Date: {job.closing_date}
+                  <img src={calendarclockLogo} alt="Calendar" className="calendar-icon" /> Closing Date: {job.closing_date}
                 </div>
                 <div className="job-card-actions">
                   <button className="view-btn" onClick={() => setShowDetails(job)}>
@@ -431,7 +434,16 @@ export default function JobPostingPage() {
                     className="view-candidates-btn" 
                     onClick={() => navigate(`/hr/jobs/${job.id}/candidates`)}
                   >
-                    👥 View Candidates ({job.applicants_count || 0})
+                    <img src={communityLogo} alt="Community"  style={{ 
+                width: 16, 
+                height: 16,
+                marginRight: 2,
+                marginBottom: 2,
+                 display: 'inline-block',
+
+        verticalAlign: 'middle',
+                filter: 'brightness(0) saturate(100%) invert(25%) sepia(50%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+    }}  className="community-icon" /> View Candidates ({job.applicants_count || 0})
                   </button>
                 </div>
               </div>
@@ -450,7 +462,7 @@ export default function JobPostingPage() {
             </div>
             <div className="modal-body">
               <div className="form-group">
-                <label>Position Title *</label>
+                <label>Position Title </label>
                 <select
                   value={newJob.positionTitle}
                   onChange={(e) => handlePositionTitleChange(e.target.value)}
@@ -464,7 +476,7 @@ export default function JobPostingPage() {
               </div>
 
               <div className="form-group">
-                <label>Place of Assignment *</label>
+                <label>Place of Assignment </label>
                 <select
                   value={showOtherInput ? "Other (Specify)" : newJob.placeOfAssignment || ""}
                   onChange={(e) => handlePlaceOfAssignmentChange(e.target.value)}
@@ -522,17 +534,24 @@ export default function JobPostingPage() {
               </div>
 
               <div className="form-group">
-                <label>Closing Date *</label>
+                <label>Closing Date </label>
                 <input 
                   type="date" 
                   value={newJob.closingDate}
                   onChange={(e) => setNewJob({...newJob, closingDate: e.target.value})} 
                 />
-                <small>Opening date is automatically set to today</small>
               </div>
 
               <div className="qualifications-section">
-                <h4>📋 Qualifications</h4>
+                <h4 style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}><img 
+                  src={clipboardactivitylogLogo} 
+                  alt="Activity Log" 
+                  style={{ 
+                    width: 22, 
+                    height: 22,
+                    filter: 'brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%)'
+                  }} 
+                /> Qualifications</h4>
                 
                 <div className="form-group">
                   <label>Education</label>
@@ -741,7 +760,7 @@ export default function JobPostingPage() {
                   }}
                   style={{ flex: 1 }}
                 >
-                  👥 View All Candidates ({showDetails.applicants_count || 0})
+                  <img src={communityLogo} alt="Community"  style={{ width: 16, height: 16, marginRight: 2, marginBottom: 2, display: 'inline-block', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(25%) sepia(50%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}  className="community-icon" /> View All Candidates ({showDetails.applicants_count || 0})
                 </button>
               </div>
             </div>
