@@ -443,80 +443,150 @@ export default function JobCandidatesPage() {
     }
   };
 
-  const bulkUpdateStatus = async (newStatus) => {
-    if (selectedRows.length === 0) {
-      alert('Please select at least one candidate.');
-      return;
-    }
+ const bulkUpdateStatus = async (newStatus) => {
+  if (selectedRows.length === 0) {
+    alert('Please select at least one candidate.');
+    return;
+  }
 
-    if (!window.confirm(`Update ${selectedRows.length} candidate(s) status to "${newStatus}"?`)) return;
+  if (!window.confirm(`Update ${selectedRows.length} candidate(s) status to "${newStatus}"?`)) return;
 
-    setBulkUpdating(true);
+  setBulkUpdating(true);
 
-    try {
-      const { data: appsData, error: appsError } = await supabase
+  try {
+    // Get current applications data
+    const { data: appsData, error: appsError } = await supabase
+      .from('applications')
+      .select('id, applicant_id, job_id, status')
+      .in('id', selectedRows);
+
+    if (appsError) throw appsError;
+
+    // Get job details for notifications
+    const { data: jobData, error: jobError } = await supabase
+      .from('job_postings')
+      .select('position_title')
+      .eq('id', appsData[0]?.job_id)
+      .single();
+
+    if (jobError) throw jobError;
+
+    const updatePromises = appsData.map(async (app) => {
+      const oldStatus = app.status || 'PENDING';
+
+      // 1. Update application status
+      const { error } = await supabase
         .from('applications')
-        .select('id, applicant_id, job_id')
-        .in('id', selectedRows);
+        .update({
+          status: newStatus,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', app.id);
 
-      if (appsError) throw appsError;
+      if (error) throw error;
 
-      const updatePromises = appsData.map(async (app) => {
-        const { error } = await supabase
-          .from('applications')
-          .update({
-            status: newStatus,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', app.id);
+      // 2. Send notification
+      try {
+        await notifyStatusChange(
+          app.applicant_id,
+          jobData.position_title,
+          oldStatus,
+          newStatus
+        );
+        console.log(`📨 Notification sent to applicant ${app.applicant_id}`);
+      } catch (notifyError) {
+        console.error('Error sending notification:', notifyError);
+      }
 
-        if (error) throw error;
+      // 3. Handle interview record - ONLY if status is INTERVIEW_SCHEDULED
+      if (newStatus === 'INTERVIEW_SCHEDULED') {
+        // CHECK if interview already exists for this application
+        const { data: existingInterview, error: checkError } = await supabase
+          .from('interviews')
+          .select('id, scheduled_date, needs_scheduling, status')
+          .eq('application_id', app.id)
+          .maybeSingle();
 
-        if (newStatus === 'INTERVIEW_SCHEDULED') {
-          const { data: existingInterview } = await supabase
+        if (checkError) {
+          console.error('❌ Error checking existing interview:', checkError);
+        }
+
+        console.log(`🔍 Application ${app.id}: Existing interview:`, existingInterview);
+
+        // ONLY create if NO interview exists
+        if (!existingInterview) {
+          console.log(`✅ Creating NEW interview for application ${app.id}`);
+          
+          const { data: userData } = await supabase.auth.getUser();
+          const userId = userData.user?.id || null;
+
+          const { data: insertData, error: insertError } = await supabase
             .from('interviews')
-            .select('id')
-            .eq('application_id', app.id)
-            .maybeSingle();
+            .insert({
+              application_id: app.id,
+              applicant_id: app.applicant_id,
+              job_id: app.job_id,
+              scheduled_date: null,
+              duration_minutes: null,
+              location: null,
+              description: null,
+              status: 'SCHEDULED',
+              needs_scheduling: true,
+              scheduled_by: userId,
+              scheduled_at: new Date().toISOString(),
+            })
+            .select();
 
-          if (!existingInterview) {
-            const { data: userData } = await supabase.auth.getUser();
-            const userId = userData.user?.id || null;
-
-            await supabase
-              .from('interviews')
-              .insert({
-                application_id: app.id,
-                applicant_id: app.applicant_id,
-                job_id: app.job_id,
-                scheduled_date: null,
-                duration_minutes: null,
-                location: null,
-                description: null,
-                status: 'SCHEDULED',
-                needs_scheduling: true,
-                scheduled_by: userId,
-                scheduled_at: new Date().toISOString(),
-              });
+          if (insertError) {
+            console.error('❌ Error inserting interview:', insertError);
+          } else {
+            console.log('✅ Interview inserted:', insertData);
+            
+            // ✅ UPDATE THE APPLICATION WITH interview_id
+            if (insertData && insertData[0]) {
+              const { error: updateAppError } = await supabase
+                .from('applications')
+                .update({ 
+                  interview_id: insertData[0].id,
+                  updated_at: new Date().toISOString()
+                })
+                .eq('id', app.id);
+                
+              if (updateAppError) {
+                console.error('❌ Error updating application with interview_id:', updateAppError);
+              } else {
+                console.log(`✅ Application ${app.id} updated with interview_id: ${insertData[0].id}`);
+              }
+            }
+          }
+        } else {
+          // Interview already exists - don't create duplicate
+          console.log(`⚠️ Interview ALREADY EXISTS for application ${app.id}, SKIPPING creation`);
+          
+          // If interview exists but needs_scheduling is false, update it
+          if (existingInterview.needs_scheduling === false && existingInterview.scheduled_date) {
+            console.log(`🔄 Interview already scheduled, keeping existing schedule`);
+          } else if (existingInterview.needs_scheduling === true) {
+            console.log(`🔄 Interview already needs scheduling, keeping as is`);
           }
         }
-      });
+      }
+    });
 
-      await Promise.all(updatePromises);
+    await Promise.all(updatePromises);
 
-      alert(`Successfully updated ${selectedRows.length} candidate(s) to ${newStatus}`);
-      setSelectedRows([]);
-      setMassSelectMode(false);
-      loadJobAndCandidates();
+    alert(`✅ Successfully updated ${selectedRows.length} candidate(s) to ${newStatus}`);
+    setSelectedRows([]);
+    setMassSelectMode(false);
+    loadJobAndCandidates();
 
-    } catch (error) {
-      console.error('Error updating candidates:', error);
-      alert('Error updating candidates: ' + error.message);
-    } finally {
-      setBulkUpdating(false);
-    }
-  };
-  // ===== END MASS SELECT FUNCTIONS =====
+  } catch (error) {
+    console.error('Error updating candidates:', error);
+    alert('Error updating candidates: ' + error.message);
+  } finally {
+    setBulkUpdating(false);
+  }
+};
 
   const toggleCompare = (candidate) => {
     if (compareMode) {

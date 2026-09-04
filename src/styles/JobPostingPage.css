@@ -147,21 +147,35 @@
 .view-btn {
   background: #4f46e5;
   color: white;
+    transition: all 0.3s ease;  /* ← Add smooth transition */
 }
 
 .view-btn:hover {
   background: #4338ca;
+   transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.view-btn:active {
+  background: #3730a3;
+  transform: translateY(0);
 }
 
 .view-candidates-btn {
-  background: #10b981;
+  background: #0d9488;
   color: white;
+  transition: all 0.2s ease;
 }
 
 .view-candidates-btn:hover {
-  background: #059669;
+  background: #0f766e;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.3);
 }
-
+.view-candidates-btn:active {
+  background: #115e59;
+  transform: translateY(0);
+}
 /* =========================
    LOADING / EMPTY STATES
    ========================= */

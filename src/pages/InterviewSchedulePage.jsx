@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
 import "../styles/InterviewSchedulePage.css";
+import { sendInterviewEmail, sendRescheduleEmail  } from '../services/emailService';
 import { CalendarMarkBlueIcon } from "../components/icons/CustomIcons";
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import mailblackLogo from '../assets/mail-black-icon.png';
@@ -47,6 +48,132 @@ export default function InterviewSchedulePage() {
     description: "",
   });
 
+  const [rescheduling, setRescheduling] = useState(false);
+
+
+// bulkReschedule state 
+const [showBulkRescheduleModal, setShowBulkRescheduleModal] = useState(false);
+const [bulkRescheduleForm, setBulkRescheduleForm] = useState({
+  date: "",
+  time: "",
+  duration: 20,
+  location: "CHRMO Office, Room 301",
+  description: "",
+  reason: "",
+});
+const [bulkRescheduling, setBulkRescheduling] = useState(false);
+
+
+
+// Open bulk reschedule modal
+const openBulkRescheduleModal = () => {
+  if (selectedApplicants.length === 0) {
+    alert('Please select at least one applicant to reschedule.');
+    return;
+  }
+  setShowBulkRescheduleModal(true);
+};
+
+
+// Handle bulk rescheduling with email notifications
+const handleBulkReschedule = async () => {
+  if (!bulkRescheduleForm.date || !bulkRescheduleForm.time) {
+    alert('Please select both date and time.');
+    return;
+  }
+
+  setBulkRescheduling(true);
+
+  try {
+    const selectedData = interviews.filter(i => selectedApplicants.includes(i.id));
+    
+    // Generate time slots
+    const startTime = new Date(`${bulkRescheduleForm.date}T${bulkRescheduleForm.time}`);
+    const duration = bulkRescheduleForm.duration;
+    
+    const emailResults = [];
+
+    for (let i = 0; i < selectedData.length; i++) {
+      const interview = selectedData[i];
+      const slotTime = new Date(startTime.getTime() + (i * duration * 60000));
+      
+      const applicantName = getApplicantName(interview);
+      const applicantEmail = getApplicantEmail(interview);
+      
+      // 1. Reschedule in database
+      const result = await rescheduleInterview(
+        interview.id,
+        slotTime.toISOString().split('T')[0],
+        slotTime.toTimeString().slice(0, 5),
+        duration,
+        bulkRescheduleForm.reason || 'Bulk Rescheduled by HR'
+      );
+
+      if (result.error) {
+        console.error('Error rescheduling interview:', result.error);
+        continue;
+      }
+
+      // 2. Send email notification
+      if (applicantEmail && applicantEmail !== 'No email') {
+        const emailResult = await sendRescheduleEmail({
+          to: applicantEmail,
+          name: applicantName,
+          title: job?.position_title || 'Interview',
+          date: slotTime.toISOString().split('T')[0],
+          time: slotTime.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          location: bulkRescheduleForm.location || 'CHRMO Office, Room 301',
+          notes: bulkRescheduleForm.description || '',
+          reason: bulkRescheduleForm.reason || 'Bulk Rescheduled by HR',
+        });
+
+        emailResults.push({
+          name: applicantName,
+          email: applicantEmail,
+          sent: emailResult.success,
+          error: emailResult.error,
+        });
+      }
+    }
+
+    // Refresh data
+    await loadData();
+    setSelectedApplicants([]);
+    setShowBulkRescheduleModal(false);
+    setBulkRescheduleForm({
+      date: "",
+      time: "",
+      duration: 20,
+      location: "CHRMO Office, Room 301",
+      description: "",
+      reason: "",
+    });
+
+    const totalRescheduled = selectedData.length;
+    const emailsSent = emailResults.filter(r => r.sent).length;
+    const emailsFailed = emailResults.filter(r => !r.sent).length;
+
+    let message = `✅ ${totalRescheduled} interview(s) rescheduled successfully!`;
+    if (emailsSent > 0) {
+      message += `\n📧 ${emailsSent} email(s) sent.`;
+    }
+    if (emailsFailed > 0) {
+      message += `\n⚠️ ${emailsFailed} email(s) failed to send.`;
+    }
+    alert(message);
+
+  } catch (error) {
+    console.error('Error bulk rescheduling:', error);
+    alert('Error bulk rescheduling: ' + error.message);
+  } finally {
+    setBulkRescheduling(false);
+  }
+};
+
   // Reschedule modal state
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [rescheduleData, setRescheduleData] = useState(null);
@@ -58,6 +185,9 @@ export default function InterviewSchedulePage() {
     description: "",
     reason: "",
   });
+
+  //Gmail notif state
+  const [scheduling, setScheduling] = useState(false);
 
   // Modal states
   const [showProfileModal, setShowProfileModal] = useState(false);
@@ -240,25 +370,27 @@ export default function InterviewSchedulePage() {
 
   // Toggle select all (only selectable ones)
   const toggleSelectAll = () => {
-    const selectable = filteredAndSortedInterviews.filter(i => needsScheduling(i) && i.status === 'SCHEDULED');
-    const selectableIds = selectable.map(i => i.id);
-    
-    const currentlySelected = selectedApplicants.filter(id => selectableIds.includes(id));
-    
-    if (currentlySelected.length === selectableIds.length && selectableIds.length > 0) {
-      setSelectedApplicants(prev => prev.filter(id => !selectableIds.includes(id)));
-    } else {
-      const newSelections = selectableIds.filter(id => !selectedApplicants.includes(id));
-      setSelectedApplicants([...selectedApplicants, ...newSelections]);
-    }
-  };
+  const selectable = filteredAndSortedInterviews.filter(i => i.status === 'SCHEDULED');
+  const selectableIds = selectable.map(i => i.id);
+  
+  if (selectableIds.length === 0) return;
+  
+  const allSelected = selectableIds.every(id => selectedApplicants.includes(id));
+  
+  if (allSelected) {
+    setSelectedApplicants(prev => prev.filter(id => !selectableIds.includes(id)));
+  } else {
+    const newSelections = selectableIds.filter(id => !selectedApplicants.includes(id));
+    setSelectedApplicants([...selectedApplicants, ...newSelections]);
+  }
+};
 
   // Check if all selectable are selected
   const allSelectableSelected = () => {
-    const selectable = filteredAndSortedInterviews.filter(i => needsScheduling(i) && i.status === 'SCHEDULED');
-    const selectableIds = selectable.map(i => i.id);
-    return selectableIds.length > 0 && selectableIds.every(id => selectedApplicants.includes(id));
-  };
+  const selectable = filteredAndSortedInterviews.filter(i => i.status === 'SCHEDULED');
+  const selectableIds = selectable.map(i => i.id);
+  return selectableIds.length > 0 && selectableIds.every(id => selectedApplicants.includes(id));
+};
 
   // Open schedule modal
   const openScheduleModal = () => {
@@ -270,7 +402,16 @@ export default function InterviewSchedulePage() {
   };
 
   // Handle batch scheduling
-  const handleBatchSchedule = async () => {
+ // Handle batch scheduling with email notifications
+const handleBatchSchedule = async () => {
+  if (!scheduleForm.date || !scheduleForm.time) {
+    alert('Please select a date and time.');
+    return;
+  }
+
+  setScheduling(true);
+
+  try {
     const selectedData = interviews.filter(i => selectedApplicants.includes(i.id));
     
     // Generate time slots
@@ -290,8 +431,8 @@ export default function InterviewSchedulePage() {
         job_id: jobId,
         scheduled_date: interviewTime.toISOString(),
         duration_minutes: duration,
-        location: scheduleForm.location || interview.location,
-        description: scheduleForm.description || interview.description,
+        location: scheduleForm.location || interview.location || 'CHRMO Office, Room 301',
+        description: scheduleForm.description || interview.description || '',
         scheduled_by: userId,
       };
     });
@@ -301,6 +442,46 @@ export default function InterviewSchedulePage() {
     if (error) {
       alert('Error scheduling interviews: ' + error.message);
       return;
+    }
+
+    // ---- NEW: Send emails to all scheduled applicants ----
+    const emailResults = [];
+    for (let i = 0; i < selectedData.length; i++) {
+      const interview = selectedData[i];
+      const slotTime = new Date(startTime.getTime() + (i * duration * 60000));
+      
+      const applicantEmail = getApplicantEmail(interview);
+      const applicantName = getApplicantName(interview);
+      
+      if (applicantEmail && applicantEmail !== 'No email') {
+        const result = await sendInterviewEmail({
+          to: applicantEmail,
+          name: applicantName,
+          title: job?.position_title || 'Interview',
+          date: slotTime.toISOString().split('T')[0],
+          time: slotTime.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+          }),
+          location: scheduleForm.location || 'CHRMO Office, Room 301',
+          notes: scheduleForm.description || 'Please arrive 15 minutes before your scheduled time.',
+        });
+        
+        emailResults.push({
+          name: applicantName,
+          email: applicantEmail,
+          sent: result.success,
+          error: result.error,
+        });
+      } else {
+        emailResults.push({
+          name: applicantName,
+          email: 'No email',
+          sent: false,
+          error: 'No email address found',
+        });
+      }
     }
 
     // Refresh the list
@@ -315,8 +496,27 @@ export default function InterviewSchedulePage() {
       description: "",
     });
     
-    alert(`Successfully scheduled ${selectedData.length} interview(s)!`);
-  };
+    // Show success message with email status
+    const totalScheduled = selectedData.length;
+    const emailsSent = emailResults.filter(r => r.sent).length;
+    const emailsFailed = emailResults.filter(r => !r.sent).length;
+    
+    let message = `✅ ${totalScheduled} interview(s) scheduled successfully!`;
+    if (emailsSent > 0) {
+      message += `\n📧 ${emailsSent} email(s) sent.`;
+    }
+    if (emailsFailed > 0) {
+      message += `\n⚠️ ${emailsFailed} email(s) failed to send.`;
+    }
+    alert(message);
+    
+  } catch (error) {
+    console.error('Error scheduling:', error);
+    alert('Error scheduling interviews: ' + error.message);
+  } finally {
+    setScheduling(false);
+  }
+};
 
   // Navigate back to candidates
   const goBackToCandidates = () => {
@@ -341,61 +541,90 @@ export default function InterviewSchedulePage() {
     setShowRescheduleModal(true);
   };
 
-  // Handle reschedule
-  const handleReschedule = async () => {
-    if (!rescheduleData) return;
-    
-    if (!rescheduleForm.date || !rescheduleForm.time) {
-      alert('Please select both date and time.');
+// Handle reschedule with email notification
+const handleReschedule = async () => {
+  if (!rescheduleData) return;
+  
+  if (!rescheduleForm.date || !rescheduleForm.time) {
+    alert('Please select both date and time.');
+    return;
+  }
+
+  setRescheduling(true);
+
+  const applicantName = getApplicantName(rescheduleData);
+  const applicantEmail = getApplicantEmail(rescheduleData);
+  const jobTitle = job?.position_title || 'Interview';
+
+  try {
+    const result = await rescheduleInterview(
+      rescheduleData.id,
+      rescheduleForm.date,
+      rescheduleForm.time,
+      rescheduleForm.duration,
+      rescheduleForm.reason || 'Rescheduled by HR'
+    );
+
+    if (result.error) {
+      alert('Error rescheduling: ' + result.error.message);
+      setRescheduling(false);
       return;
     }
 
-    try {
-      const result = await rescheduleInterview(
-        rescheduleData.id,
-        rescheduleForm.date,
-        rescheduleForm.time,
-        rescheduleForm.duration,
-        rescheduleForm.reason || 'Rescheduled by HR'
-      );
-
-      if (result.error) {
-        alert('Error rescheduling: ' + result.error.message);
-        return;
-      }
-
-      await loadData();
-      setShowRescheduleModal(false);
-      setRescheduleData(null);
-      setRescheduleForm({
-        date: "",
-        time: "",
-        duration: 20,
-        location: "CHRMO Office, Room 301",
-        description: "",
-        reason: "",
+    // Send email notification about reschedule - USING NEW FUNCTION
+    if (applicantEmail && applicantEmail !== 'No email') {
+      const emailResult = await sendRescheduleEmail({
+        to: applicantEmail,
+        name: applicantName,
+        title: jobTitle,
+        date: rescheduleForm.date,
+        time: rescheduleForm.time,
+        location: rescheduleForm.location || 'CHRMO Office, Room 301',
+        notes: rescheduleForm.description || '',
+        reason: rescheduleForm.reason || 'Rescheduled by HR',
       });
-      
-      alert('✅ Interview successfully rescheduled!');
-    } catch (error) {
-      console.error('Error rescheduling:', error);
-      alert('Error rescheduling interview: ' + error.message);
-    }
-  };
 
-  // Handle individual actions
-  const handleAction = (interview, action) => {
-    setSelectedInterview(interview);
-    setConfirmAction(action);
+      if (emailResult.success) {
+        console.log('📧 Reschedule email sent to:', applicantEmail);
+      } else {
+        console.error('❌ Failed to send reschedule email:', emailResult.error);
+      }
+    }
+
+    await loadData();
+    setShowRescheduleModal(false);
+    setRescheduleData(null);
+    setRescheduleForm({
+      date: "",
+      time: "",
+      duration: 20,
+      location: "CHRMO Office, Room 301",
+      description: "",
+      reason: "",
+    });
     
-    const messages = {
-      complete: `Mark "${getApplicantName(interview)}" as completed?`,
-      noshow: `Mark "${getApplicantName(interview)}" as NO SHOW?`,
-      cancel: `Cancel interview for "${getApplicantName(interview)}"?\n\nStatus will change to QUALIFIED (can be re-scheduled later).`,
-    };
-    setConfirmMessage(messages[action]);
-    setShowConfirmModal(true);
+    alert(`✅ Interview successfully rescheduled!${applicantEmail && applicantEmail !== 'No email' ? ' 📧 Email sent.' : ''}`);
+  } catch (error) {
+    console.error('Error rescheduling:', error);
+    alert('Error rescheduling interview: ' + error.message);
+  } finally {
+    setRescheduling(false);
+  }
+};
+
+// Handle individual actions (Complete, No Show, Cancel)
+const handleAction = (interview, action) => {
+  setSelectedInterview(interview);
+  setConfirmAction(action);
+  
+  const messages = {
+    complete: `Mark "${getApplicantName(interview)}" as completed?`,
+    noshow: `Mark "${getApplicantName(interview)}" as NO SHOW?`,
+    cancel: `Cancel interview for "${getApplicantName(interview)}"?\n\nStatus will change to QUALIFIED (can be re-scheduled later).`,
   };
+  setConfirmMessage(messages[action]);
+  setShowConfirmModal(true);
+};
 
   // Confirm action
   const confirmActionHandler = async () => {
@@ -557,6 +786,138 @@ export default function InterviewSchedulePage() {
          
    }} /> Schedule Selected ({selectedApplicants.length})
             </button>
+
+   
+{/* Bulk Reschedule Modal */}
+{showBulkRescheduleModal && (
+  <div className="modal-overlay" onClick={() => setShowBulkRescheduleModal(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+      <div className="modal-header">
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <img src={calendarminimalLogo} alt="Calendar" style={{ width: 19, height: 19, filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }} /> 
+          Bulk Reschedule Interviews
+        </h3>
+        <button className="close-modal" onClick={() => setShowBulkRescheduleModal(false)}>×</button>
+      </div>
+      <div className="modal-body">
+        <p className="schedule-info">
+          Rescheduling <strong>{selectedApplicants.length}</strong> applicant(s)
+        </p>
+
+        <div className="schedule-form">
+          <div className="form-group">
+            <label>New Date *</label>
+            <input
+              type="date"
+              value={bulkRescheduleForm.date}
+              onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, date: e.target.value})}
+              min={new Date().toISOString().split('T')[0]}
+              required
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>New Time *</label>
+            <input
+              type="time"
+              value={bulkRescheduleForm.time}
+              onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, time: e.target.value})}
+              min="08:00"
+              max="17:00"
+              required
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Duration (minutes) *</label>
+            <select
+              value={bulkRescheduleForm.duration}
+              onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, duration: parseInt(e.target.value)})}
+              className="form-select"
+            >
+              <option value={15}>15 minutes</option>
+              <option value={20}>20 minutes</option>
+              <option value={30}>30 minutes</option>
+              <option value={45}>45 minutes</option>
+              <option value={60}>60 minutes</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label>Location</label>
+            <input
+              type="text"
+              value={bulkRescheduleForm.location}
+              onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, location: e.target.value})}
+              placeholder="e.g., CHRMO Office, Room 301"
+              className="form-input"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Description / Notes</label>
+            <textarea
+              value={bulkRescheduleForm.description}
+              onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, description: e.target.value})}
+              placeholder="Add any special instructions..."
+              className="form-textarea"
+              rows="3"
+            />
+          </div>
+
+          <div className="form-group">
+            <label>Reason for Reschedule</label>
+            <select
+              value={bulkRescheduleForm.reason}
+              onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, reason: e.target.value})}
+              className="form-select"
+            >
+              <option value="">Select a reason...</option>
+              <option value="Weather Disturbance">🌧️ Weather Disturbance</option>
+              <option value="Panel Unavailable">👥 Panel Unavailable</option>
+              <option value="Applicant Request">📞 Applicant Request</option>
+              <option value="HR Scheduling Conflict">📋 HR Scheduling Conflict</option>
+              <option value="Technical Issues">💻 Technical Issues</option>
+              <option value="Bulk Reschedule">📝 Bulk Reschedule</option>
+              <option value="Other">📝 Other</option>
+            </select>
+            {bulkRescheduleForm.reason === 'Other' && (
+              <input
+                type="text"
+                placeholder="Please specify..."
+                className="form-input"
+                style={{ marginTop: '8px' }}
+                onChange={(e) => setBulkRescheduleForm({...bulkRescheduleForm, reason: e.target.value})}
+              />
+            )}
+          </div>
+        </div>
+
+        <div className="modal-actions">
+          <button 
+            className="btn-secondary"
+            onClick={() => setShowBulkRescheduleModal(false)}
+          >
+            Cancel
+          </button>
+          <button 
+            className="btn-primary"
+            onClick={handleBulkReschedule}
+            disabled={!bulkRescheduleForm.date || !bulkRescheduleForm.time || bulkRescheduling}
+            style={{ background: '#E65100' }}
+          >
+            {bulkRescheduling ? 'Rescheduling...' : '🔄 Reschedule All'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
           </div>
         </div>
         {/* Table */}
@@ -599,7 +960,7 @@ export default function InterviewSchedulePage() {
                           type="checkbox"
                           checked={allSelectableSelected()}
                           onChange={toggleSelectAll}
-                          disabled={filteredAndSortedInterviews.filter(i => needsScheduling(i) && i.status === 'SCHEDULED').length === 0}
+                        disabled={filteredAndSortedInterviews.filter(i => i.status === 'SCHEDULED').length === 0}
                         />
                       </th>
                       <th>#</th>
@@ -630,7 +991,7 @@ export default function InterviewSchedulePage() {
                               type="checkbox"
                               checked={isSelected}
                               onChange={() => toggleSelection(interview.id)}
-                              disabled={!isSelectable}
+                              disabled={interview.status !== 'SCHEDULED'}
                             />
                           </td>
                           <td>{index + 1}</td>
@@ -758,6 +1119,44 @@ export default function InterviewSchedulePage() {
         )}
       </div>
 
+      
+      {/* Bottom section with Reschedule Button */}
+<div style={{ 
+  display: 'flex', 
+  justifyContent: 'flex-end',  // ← Pushes content to the right
+    padding: '10px 0',  // ← REDUCED from 10px to 4px
+  marginTop: '-16px'  // ← ADD: Pull it up closer to the table
+}}>
+          {/* NEW: Bulk Reschedule Button */}
+  <button 
+    className="btn-reschedule-batch"
+    onClick={openBulkRescheduleModal}
+    disabled={selectedApplicants.length === 0}
+    style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '8px 16px',
+      background: '#E65100',
+      color: 'white',
+      border: 'none',
+      borderRadius: '6px',
+      cursor: selectedApplicants.length === 0 ? 'not-allowed' : 'pointer',
+      fontWeight: '500',
+      fontSize: '13px',
+      marginRight: '32px',
+      opacity: selectedApplicants.length === 0 ? 0.5 : 1
+    }}
+  >
+    <img src={calendarminimalLogo} alt="Calendar" style={{ width: 16, height: 16,
+      filter: 'brightness(0) saturate(100%) invert(100%) brightness(200%)'
+    }} /> 
+    Reschedule Selected ({selectedApplicants.length})
+  </button>
+
+</div>
+
+
       {/* Schedule Modal */}
       {showScheduleModal && (
         <div className="modal-overlay" onClick={() => setShowScheduleModal(false)}>
@@ -864,13 +1263,13 @@ export default function InterviewSchedulePage() {
                 >
                   Cancel
                 </button>
-                <button 
-                  className="btn-primary"
-                  onClick={handleBatchSchedule}
-                  disabled={!scheduleForm.date || !scheduleForm.time}
-                >
-                  Schedule All
-                </button>
+              <button 
+  className="btn-primary"
+  onClick={handleBatchSchedule}
+  disabled={!scheduleForm.date || !scheduleForm.time || scheduling}
+>
+  {scheduling ? 'Scheduling...' : 'Schedule All'}
+</button>
               </div>
             </div>
           </div>
@@ -991,12 +1390,12 @@ export default function InterviewSchedulePage() {
                   Cancel
                 </button>
                 <button 
-                  className="btn-primary"
-                  onClick={handleReschedule}
-                  disabled={!rescheduleForm.date || !rescheduleForm.time}
-                >
-                  🔄 Reschedule
-                </button>
+  className="btn-primary"
+  onClick={handleReschedule}
+  disabled={!rescheduleForm.date || !rescheduleForm.time || rescheduling}
+>
+  {rescheduling ? 'Rescheduling...' : '🔄 Reschedule'}
+</button>
               </div>
             </div>
           </div>

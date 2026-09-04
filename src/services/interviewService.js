@@ -496,69 +496,52 @@ export const cancelInterview = async (interviewId, reason = null) => {
 // RESCHEDULE INTERVIEW
 // ============================================
 
-// Reschedule an interview
-export const rescheduleInterview = async (oldInterviewId, newDate, newTime, duration, reason) => {
+// Reschedule an interview - UPDATES existing record instead of creating new
+// Reschedule an interview - UPDATES existing record
+export const rescheduleInterview = async (interviewId, newDate, newTime, duration, reason) => {
   try {
-    // First, get the old interview data
-    const { data: oldInterview, error: getError } = await supabase
+    const { data: userData } = await supabase.auth.getUser();
+    const userId = userData.user?.id || null;
+
+    const newDateTime = new Date(`${newDate}T${newTime}`);
+
+    const { data: currentInterview, error: getError } = await supabase
       .from('interviews')
       .select('*')
-      .eq('id', oldInterviewId)
+      .eq('id', interviewId)
       .single();
 
     if (getError) throw getError;
 
-    // Mark old interview as RESCHEDULED
-    await supabase
+    // UPDATE the existing interview (don't mark as RESCHEDULED)
+    const { data, error } = await supabase
       .from('interviews')
       .update({
-        status: 'RESCHEDULED',
-        reschedule_reason: reason || 'Rescheduled by HR',
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', oldInterviewId);
-
-    // Create new interview with updated date/time
-    const newDateTime = new Date(`${newDate}T${newTime}`);
-
-    const { data: newInterview, error: createError } = await supabase
-      .from('interviews')
-      .insert({
-        application_id: oldInterview.application_id,
-        applicant_id: oldInterview.applicant_id,
-        job_id: oldInterview.job_id,
         scheduled_date: newDateTime.toISOString(),
-        duration_minutes: duration || oldInterview.duration_minutes || 20,
-        location: oldInterview.location,
-        description: oldInterview.description || 'Rescheduled interview',
-        status: 'SCHEDULED',
+        duration_minutes: duration || currentInterview.duration_minutes || 20,
+        location: currentInterview.location || 'CHRMO Office, Room 301',
+        description: currentInterview.description || 'Rescheduled interview',
+        status: 'SCHEDULED',  // Keep as SCHEDULED, not RESCHEDULED
         needs_scheduling: false,
-        scheduled_by: oldInterview.scheduled_by,
+        scheduled_by: userId || currentInterview.scheduled_by,
         scheduled_at: new Date().toISOString(),
-        rescheduled_from: oldInterviewId,
-        reschedule_reason: reason || 'Rescheduled by HR'
+        updated_at: new Date().toISOString(),
+        reschedule_reason: reason || 'Rescheduled by HR',
+        rescheduled_from: currentInterview.rescheduled_from || interviewId,
       })
+      .eq('id', interviewId)
       .select()
       .single();
 
-    if (createError) throw createError;
+    if (error) throw error;
 
-    // Update application with new interview_id
-    await supabase
-      .from('applications')
-      .update({
-        interview_id: newInterview.id,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', oldInterview.application_id);
+    return { data, error: null };
 
-    return { data: newInterview, error: null };
   } catch (error) {
     console.error('Error rescheduling interview:', error);
     return { data: null, error };
   }
 };
-
 // ============================================
 // DELETE / REMOVE
 // ============================================
