@@ -206,10 +206,11 @@ export default function JobPostingPage() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showDetails, setShowDetails] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // Combined search
   const [selectedLocation, setSelectedLocation] = useState("All");
   const [showOtherInput, setShowOtherInput] = useState(false);
-  
+  const [statusFilter, setStatusFilter] = useState("OPEN"); // Default to OPEN
+
   const [newJob, setNewJob] = useState({
     positionTitle: "",
     placeOfAssignment: "",
@@ -348,12 +349,24 @@ export default function JobPostingPage() {
   // Get unique locations for filter
   const locations = [...new Set(jobs.map(job => job.place_of_assignment).filter(Boolean))];
   
-  // Filter jobs based on search and location
+  // Filter jobs based on search, location, and status
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.position_title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          job.place_of_assignment?.toLowerCase().includes(searchTerm.toLowerCase());
+    const searchLower = searchTerm.toLowerCase();
+    const matchesSearch = 
+      job.position_title?.toLowerCase().includes(searchLower) ||
+      job.place_of_assignment?.toLowerCase().includes(searchLower) ||
+      job.item_no?.toLowerCase().includes(searchLower);
+    
     const matchesLocation = selectedLocation === "All" || job.place_of_assignment === selectedLocation;
-    return matchesSearch && matchesLocation;
+    
+    let matchesStatus = true;
+    if (statusFilter === "OPEN") {
+      matchesStatus = job.status === "OPEN";
+    } else if (statusFilter === "CLOSED") {
+      matchesStatus = job.status === "CLOSED";
+    }
+    
+    return matchesSearch && matchesLocation && matchesStatus;
   });
 
   return (
@@ -376,10 +389,11 @@ export default function JobPostingPage() {
           <input
             type="text"
             className="search-input"
-            placeholder="Search by position title or location..."
+            placeholder="Search by position title, location, or item no..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
+          
           <select 
             className="filter-select"
             value={selectedLocation}
@@ -390,12 +404,22 @@ export default function JobPostingPage() {
               <option key={loc} value={loc}>{loc}</option>
             ))}
           </select>
+          
+          <select 
+            className="filter-select status-filter"
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+          >
+            <option value="OPEN"> Open Jobs</option>
+            <option value="CLOSED"> Closed Jobs</option>
+
+            <option value="ALL"> All Jobs</option>
+          </select>
         </div>
 
         <div className="jobs-grid">
           {loading ? (
-            
-              <Loader />
+            <Loader />
           ) : filteredJobs.length === 0 ? (
             <div className="empty-state">
               {jobs.length === 0 ? (

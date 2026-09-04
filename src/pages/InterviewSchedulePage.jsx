@@ -412,7 +412,6 @@ export default function InterviewSchedulePage() {
         await cancelInterview(selectedInterview.id);
         alert('❌ Interview cancelled. Applicant status changed to QUALIFIED.');
       }
-
       await loadData();
       setShowConfirmModal(false);
       setSelectedInterview(null);
@@ -421,13 +420,11 @@ export default function InterviewSchedulePage() {
       alert('Error updating interview: ' + error.message);
     }
   };
-
   // View candidate profile
   const viewCandidateProfile = (interview) => {
     setSelectedApplicant(interview);
     setShowProfileModal(true);
   };
-
   // Get stats
   const stats = {
     total: interviews.length,
@@ -438,7 +435,6 @@ export default function InterviewSchedulePage() {
     rescheduled: interviews.filter(i => i.status === 'RESCHEDULED').length,
     needsScheduling: interviews.filter(i => needsScheduling(i)).length,
   };
-
   return (
     <>
       <Navbar userRole="hr" />
@@ -455,20 +451,12 @@ export default function InterviewSchedulePage() {
     gap: '1px',
     cursor: 'pointer',
      textDecoration: 'none'
-  }}
-  
-            >
+  }}>
               <ReverseTabArrowIcon/> <span> Back </span>
             </button>
            <h1 style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
   <img src={calendarminimalLogo} alt="Calendar" style={{ width: 24, height: 24,
      filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
-         
-
-
-
-
-
    }} />
   Interview Schedule
 </h1>
@@ -563,9 +551,7 @@ export default function InterviewSchedulePage() {
     display: 'inline-flex',
     alignItems: 'center',
     gap: '6px'
-  }}
-
-            >
+  }}>
               <img src={calendarminimalLogo} alt="Calendar" style={{ width: 16, height: 16,
      filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
          
@@ -573,7 +559,6 @@ export default function InterviewSchedulePage() {
             </button>
           </div>
         </div>
-
         {/* Table */}
         {loading ? (
           <div className="loading-state">Loading interviews...</div>
@@ -586,9 +571,6 @@ export default function InterviewSchedulePage() {
      filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
          
    }} />
-
-
-
                 </div>
                 <h3>No interviews found</h3>
                 <p>

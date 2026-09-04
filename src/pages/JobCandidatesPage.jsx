@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
-import { DocumentCheckIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
+import { DocumentCheckIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
 import JobCandidateButton from "../components/JobCandidateButton";
 import communityLogo from '../assets/community3-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
@@ -38,7 +38,13 @@ export default function JobCandidatesPage() {
   const [selectedCompareCandidates, setSelectedCompareCandidates] = useState([]);
   const [showCompareModal, setShowCompareModal] = useState(false);
 
-  // Store job requirements for comparison - FIXED with correct column names
+  // NEW: Mass Select States
+  const [massSelectMode, setMassSelectMode] = useState(false);
+  const [selectedRows, setSelectedRows] = useState([]);
+  const [bulkStatus, setBulkStatus] = useState('SHORTLISTED');
+  const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // Store job requirements for comparison
   const [jobRequirements, setJobRequirements] = useState({
     education: 0,
     eligibility: '',
@@ -149,7 +155,6 @@ export default function JobCandidatesPage() {
       if (jobError) throw jobError;
       setJob(jobData);
       
-      // FIXED: Use correct column names from your table
       setJobRequirements({
         education: parseInt(jobData?.required_education) || 0,
         eligibility: jobData?.required_eligibility || '',
@@ -321,7 +326,6 @@ export default function JobCandidatesPage() {
     }
   };
 
-  // FIXED: Clean education text - removes "(Required: ...)" from display
   const cleanEducationText = (edu) => {
     if (!edu || edu === 'N/A') return 'N/A';
     const cleaned = edu.replace(/\s*\([^)]*\)/g, '').trim();
@@ -418,6 +422,102 @@ export default function JobCandidatesPage() {
     return allComplete;
   };
 
+  // ===== MASS SELECT FUNCTIONS =====
+  const toggleRowSelection = (candidateId) => {
+    setSelectedRows(prev => {
+      if (prev.includes(candidateId)) {
+        return prev.filter(id => id !== candidateId);
+      } else {
+        return [...prev, candidateId];
+      }
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const visibleIds = filteredCandidates.map(c => c.id);
+    const allSelected = visibleIds.every(id => selectedRows.includes(id));
+    if (allSelected) {
+      setSelectedRows([]);
+    } else {
+      setSelectedRows(visibleIds);
+    }
+  };
+
+  const bulkUpdateStatus = async (newStatus) => {
+    if (selectedRows.length === 0) {
+      alert('Please select at least one candidate.');
+      return;
+    }
+
+    if (!window.confirm(`Update ${selectedRows.length} candidate(s) status to "${newStatus}"?`)) return;
+
+    setBulkUpdating(true);
+
+    try {
+      const { data: appsData, error: appsError } = await supabase
+        .from('applications')
+        .select('id, applicant_id, job_id')
+        .in('id', selectedRows);
+
+      if (appsError) throw appsError;
+
+      const updatePromises = appsData.map(async (app) => {
+        const { error } = await supabase
+          .from('applications')
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', app.id);
+
+        if (error) throw error;
+
+        if (newStatus === 'INTERVIEW_SCHEDULED') {
+          const { data: existingInterview } = await supabase
+            .from('interviews')
+            .select('id')
+            .eq('application_id', app.id)
+            .maybeSingle();
+
+          if (!existingInterview) {
+            const { data: userData } = await supabase.auth.getUser();
+            const userId = userData.user?.id || null;
+
+            await supabase
+              .from('interviews')
+              .insert({
+                application_id: app.id,
+                applicant_id: app.applicant_id,
+                job_id: app.job_id,
+                scheduled_date: null,
+                duration_minutes: null,
+                location: null,
+                description: null,
+                status: 'SCHEDULED',
+                needs_scheduling: true,
+                scheduled_by: userId,
+                scheduled_at: new Date().toISOString(),
+              });
+          }
+        }
+      });
+
+      await Promise.all(updatePromises);
+
+      alert(`Successfully updated ${selectedRows.length} candidate(s) to ${newStatus}`);
+      setSelectedRows([]);
+      setMassSelectMode(false);
+      loadJobAndCandidates();
+
+    } catch (error) {
+      console.error('Error updating candidates:', error);
+      alert('Error updating candidates: ' + error.message);
+    } finally {
+      setBulkUpdating(false);
+    }
+  };
+  // ===== END MASS SELECT FUNCTIONS =====
+
   const toggleCompare = (candidate) => {
     if (compareMode) {
       const index = selectedCompareCandidates.findIndex(c => c.id === candidate.id);
@@ -450,341 +550,297 @@ export default function JobCandidatesPage() {
     }
   };
 
-  // =============================================
-// HUMAN-READABLE NARRATIVE COMPARISON SUMMARY
-// =============================================
-const getComparisonSummary = (candidateA, candidateB) => {
-  const aScore = candidateA.ai_match_score || 0;
-  const bScore = candidateB.ai_match_score || 0;
+  const getComparisonSummary = (candidateA, candidateB) => {
+    const aScore = candidateA.ai_match_score || 0;
+    const bScore = candidateB.ai_match_score || 0;
 
-  const higher = aScore >= bScore ? candidateA : candidateB;
-  const lower = aScore >= bScore ? candidateB : candidateA;
+    const higher = aScore >= bScore ? candidateA : candidateB;
+    const lower = aScore >= bScore ? candidateB : candidateA;
 
-  const reasons = [];
+    const reasons = [];
 
-  // Education comparison
-  const aEdu = cleanEducationText(candidateA.education);
-  const bEdu = cleanEducationText(candidateB.education);
+    // Education comparison
+    const aEdu = cleanEducationText(candidateA.education);
+    const bEdu = cleanEducationText(candidateB.education);
 
-  if (aEdu !== bEdu && aEdu !== 'N/A' && bEdu !== 'N/A') {
-    const eduLevels = [
-      'None',
-      'Elementary',
-      'High School',
-      '2-Year College',
-      "Bachelor's",
-      "Master's",
-      'PhD/Doctorate'
-    ];
+    if (aEdu !== bEdu && aEdu !== 'N/A' && bEdu !== 'N/A') {
+      const eduLevels = [
+        'None',
+        'Elementary',
+        'High School',
+        '2-Year College',
+        "Bachelor's",
+        "Master's",
+        'PhD/Doctorate'
+      ];
 
-    const aLevel = eduLevels.indexOf(aEdu);
-    const bLevel = eduLevels.indexOf(bEdu);
+      const aLevel = eduLevels.indexOf(aEdu);
+      const bLevel = eduLevels.indexOf(bEdu);
 
-    if (aLevel > bLevel) {
-      reasons.push(`including higher educational attainment (${aEdu} degree compared to ${bEdu} degree)`);
-    } else if (bLevel > aLevel) {
-      reasons.push(`including higher educational attainment (${bEdu} degree compared to ${aEdu} degree)`);
-    }
-  }
-
-  // Eligibility comparison
-const aEligibility = candidateA.eligibility || 'None';
-const bEligibility = candidateB.eligibility || 'None';
-
-if (aEligibility !== bEligibility) {
-  const higherEligibility = aScore >= bScore ? aEligibility : bEligibility;
-
-  if (higherEligibility !== 'None' && higherEligibility !== 'N/A') {
-    reasons.push(`${higherEligibility} career service eligibility`);
-  }
-}
-
-  // Training
-  const aTrain = parseInt(candidateA.training) || 0;
-  const bTrain = parseInt(candidateB.training) || 0;
-
-  if (aTrain !== bTrain) {
-    const higherTrain = Math.max(aTrain, bTrain);
-    const lowerTrain = Math.min(aTrain, bTrain);
-
-    reasons.push(`more training hours (${higherTrain} compared to ${lowerTrain})`);
-  }
-
-  // Experience
-  const aExp = parseInt(candidateA.experience) || 0;
-  const bExp = parseInt(candidateB.experience) || 0;
-
-  if (aExp !== bExp) {
-    const higherExp = Math.max(aExp, bExp);
-    const lowerExp = Math.min(aExp, bExp);
-
-    reasons.push(`${higherExp} years of relevant work experience compared to ${lower.applicant_name}'s ${lowerExp} years`);
-  }
-
-  // Requirements met
-  const aMet = candidateA.explanation?.requirements_met || '0/0';
-  const bMet = candidateB.explanation?.requirements_met || '0/0';
-
-  if (aMet !== bMet) {
-    const higherMet = aScore >= bScore ? aMet : bMet;
-    const lowerMet = aScore >= bScore ? bMet : aMet;
-
-  }
-
-  // No differences found
-  if (reasons.length === 0) {
-    return "Both candidates have comparable qualifications based on the assessment.";
-  }
-
-  // Convert array into natural sentence
-  const reasonText = reasons.length > 1
-    ? reasons.slice(0, -1).join(", ") + ", and " + reasons[reasons.length - 1]
-    : reasons[0];
-
-  return `${higher.applicant_name} ranks higher due to stronger qualifications, ${reasonText}.`;
-};
-  const exportShortlistPDF = () => {
-  // Check if candidate is fully qualified
-  const isFullyQualified = (candidate) => {
-    if (!candidate.education || candidate.education === 'N/A') return false;
-    if (!candidate.eligibility || candidate.eligibility === 'None' || candidate.eligibility === 'N/A') return false;
-    
-    if (candidate.training && candidate.training !== 'N/A') {
-      const match = candidate.training.match(/(\d+)\/(\d+)/);
-      if (match) {
-        const actual = parseInt(match[1]);
-        const required = parseInt(match[2]);
-        if (required > 0 && actual < required) return false;
+      if (aLevel > bLevel) {
+        reasons.push(`including higher educational attainment (${aEdu} degree compared to ${bEdu} degree)`);
+      } else if (bLevel > aLevel) {
+        reasons.push(`including higher educational attainment (${bEdu} degree compared to ${aEdu} degree)`);
       }
     }
-    
-    if (candidate.experience && candidate.experience !== 'N/A') {
-      const match = candidate.experience.match(/(\d+)\/(\d+)/);
-      if (match) {
-        const actual = parseFloat(match[0]);
-        const required = parseFloat(match[1]);
-        if (required > 0 && actual < required) return false;
+
+    // Eligibility comparison
+    const aEligibility = candidateA.eligibility || 'None';
+    const bEligibility = candidateB.eligibility || 'None';
+
+    if (aEligibility !== bEligibility) {
+      const higherEligibility = aScore >= bScore ? aEligibility : bEligibility;
+
+      if (higherEligibility !== 'None' && higherEligibility !== 'N/A') {
+        reasons.push(`${higherEligibility} career service eligibility`);
       }
     }
-    
-    return true;
+
+    // Training
+    const aTrain = parseInt(candidateA.training) || 0;
+    const bTrain = parseInt(candidateB.training) || 0;
+
+    if (aTrain !== bTrain) {
+      const higherTrain = Math.max(aTrain, bTrain);
+      const lowerTrain = Math.min(aTrain, bTrain);
+
+      reasons.push(`more training hours (${higherTrain} compared to ${lowerTrain})`);
+    }
+
+    // Experience
+    const aExp = parseInt(candidateA.experience) || 0;
+    const bExp = parseInt(candidateB.experience) || 0;
+
+    if (aExp !== bExp) {
+      const higherExp = Math.max(aExp, bExp);
+      const lowerExp = Math.min(aExp, bExp);
+
+      reasons.push(`${higherExp} years of relevant work experience compared to ${lower.applicant_name}'s ${lowerExp} years`);
+    }
+
+    // No differences found
+    if (reasons.length === 0) {
+      return "Both candidates have comparable qualifications based on the assessment.";
+    }
+
+    // Convert array into natural sentence
+    const reasonText = reasons.length > 1
+      ? reasons.slice(0, -1).join(", ") + ", and " + reasons[reasons.length - 1]
+      : reasons[0];
+
+    return `${higher.applicant_name} ranks higher due to stronger qualifications, ${reasonText}.`;
   };
 
-  const shortlisted = candidates.filter(c => 
-    (c.status === 'SHORTLISTED' || c.status === 'QUALIFIED') &&
-    isFullyQualified(c)
-  );
-
-  if (shortlisted.length === 0) {
-    alert('No shortlisted candidates to export.');
-    return;
-  }
-
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  const lineWidth = pageWidth - (margin * 2);
-
-  // HEADER
-  doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
-  doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 20, { align: 'center' });
-  
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 28, { align: 'center' });
-
-  doc.setDrawColor(100);
-  doc.line(margin, 32, pageWidth - margin, 32);
-
-  // TITLE
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('SHORTLIST OF QUALIFIED CANDIDATES', pageWidth / 2, 42, { align: 'center' });
-
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`For the Position of: ${job?.position_title || 'N/A'}`, pageWidth / 2, 50, { align: 'center' });
-
-  // NOTE
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.text('All candidates below satisfy the encoded qualification criteria for the position.', pageWidth / 2, 58, { align: 'center' });
-
-  // METADATA
-  const today = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Date Generated: ${today}`, margin, 68);
-  doc.text(`Item No.: ${job?.item_no || 'N/A'}`, margin, 75);
-  doc.text(`Total Applicants: ${candidates.length}  |  Shortlisted: ${shortlisted.length}`, margin, 82);
-
-  // TABLE - With tableWidth set to match the line
-  const tableData = shortlisted.map((c, index) => {
-    let experienceDisplay = 'N/A';
-    let status = 'FIT';
-    
-    if (c.experience && c.experience !== 'N/A') {
-      const match = c.experience.match(/([\d.]+)\/([\d.]+)/);
-      if (match) {
-        const actual = parseFloat(match[1]);
-        const required = parseFloat(match[2]);
-        if (required === 0) {
-          experienceDisplay = 'Not Required';
-        } else {
-          experienceDisplay = `${actual}/${required} yrs`;
-          if (actual > required) {
-            status = 'HIGHLY FIT';
-          }
-        }
-      } else {
-        experienceDisplay = c.experience;
-      }
-    }
-
-    const educationDisplay = cleanEducationText(c.education) || 'N/A';
-    if (educationDisplay.includes('Master') || educationDisplay.includes('PhD')) {
-      status = 'HIGHLY FIT';
-    }
-
-    return [
-      index + 1,
-      c.applicant_name,
-      educationDisplay,
-      c.eligibility !== 'None' && c.eligibility !== 'N/A' 
-        ? c.eligibility 
-        : 'N/A',
-      experienceDisplay,
-      status
-    ];
-  });
-
-  autoTable(doc, {
-    startY: 88,
-    head: [['#', 'Name', 'Education', 'Eligibility', 'Experience', 'Status']],
-    body: tableData,
-    theme: 'grid',
-    styles: {
-      fontSize: 8,
-      cellPadding: 2,
-      overflow: 'linebreak',
-      valign: 'middle',
-    },
-    headStyles: {
-      fillColor: [79, 70, 229],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      fontSize: 8,
-      halign: 'center',
-    },
-    alternateRowStyles: {
-      fillColor: [245, 247, 250],
-    },
-    columnStyles: {
-      0: { cellWidth: 8, halign: 'center' },
-      1: { cellWidth: 38, halign: 'left' },
-      2: { cellWidth: 28, halign: 'left' },
-      3: { cellWidth: 30, halign: 'left' },
-      4: { cellWidth: 30, halign: 'left' },
-      5: { cellWidth: 28, halign: 'center' },
-    },
-    margin: { left: margin, right: margin },
-    tableWidth: lineWidth, // ← THIS forces the table to match the line width
-  });
-
-  let finalY = doc.lastAutoTable.finalY + 8;
-
-  // SUMMARY LINE - Same width as header line and table
-  doc.setDrawColor(100);
-  doc.line(margin, finalY, pageWidth - margin, finalY);
-  finalY += 8;
-
-  // Count Highly Fit
-  const highlyFit = shortlisted.filter(c => {
-    let exceeds = false;
-    
-    if (c.experience && c.experience !== 'N/A') {
-      const match = c.experience.match(/([\d.]+)\/([\d.]+)/);
-      if (match) {
-        const actual = parseFloat(match[1]);
-        const required = parseFloat(match[2]);
-        if (required > 0 && actual > required) exceeds = true;
-      }
-    }
-    const edu = cleanEducationText(c.education);
-    if (edu.includes('Master') || edu.includes('PhD')) exceeds = true;
-    
-    return exceeds;
-  }).length;
-
-  const fit = shortlisted.length - highlyFit;
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('SUMMARY', margin, finalY);
-  finalY += 6;
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Total Qualified: ${shortlisted.length}`, margin, finalY);
-  finalY += 5;
-  doc.text(`Highly Fit: ${highlyFit}`, margin + 5, finalY);
-  finalY += 5;
-  doc.text(`Fit: ${fit}`, margin + 5, finalY);
-  finalY += 8;
-
-  // SIGNATURE SECTION
-  if (finalY > 250) {
-    doc.addPage();
-    finalY = 20;
-  }
-
-  doc.setDrawColor(100);
-  doc.line(margin, finalY, pageWidth - margin, finalY);
-
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Prepared by:', margin, finalY + 12);
-  doc.text('Approved by:', pageWidth - margin - 35, finalY + 12);
-
-  doc.setFont('helvetica', 'normal');
-  doc.text('_________________________', margin, finalY + 22);
-  doc.text('_________________________', pageWidth - margin - 35, finalY + 22);
-
-  doc.setFontSize(8);
-  doc.text('HRMO Designate', margin, finalY + 30);
-  doc.text('HRMPSB Chairperson', pageWidth - margin - 35, finalY + 30);
-
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'italic');
-  doc.text('This is a certified true copy of the shortlist.', pageWidth / 2, finalY + 42, { align: 'center' });
-
-  // WATERMARK
-  doc.setFontSize(40);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(200, 200, 200);
-  doc.text('FOR HRMPSB REVIEW', pageWidth / 2, 160, { align: 'center', angle: 45 });
-  doc.setTextColor(0);
-
-  // FOOTER
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(7);
-    doc.setTextColor(150);
-    doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, 285, { align: 'center' });
-    doc.text('FOR HRMPSB REVIEW USE', margin, 285);
-    doc.text(`Generated: ${today}`, pageWidth - margin, 285, { align: 'right' });
-    doc.setTextColor(0);
-  }
-
-  doc.save(`Shortlist_${job?.position_title?.replace(/\s+/g, '_') || 'Candidates'}_${new Date().toISOString().split('T')[0]}.pdf`);
+  const exportShortlistPDF = () => {
+  const isFullyQualified = (candidate) => {
+  return candidate.status === 'SHORTLISTED' || candidate.status === 'QUALIFIED';
 };
+
+    const shortlisted = candidates.filter(c => 
+      (c.status === 'SHORTLISTED' || c.status === 'QUALIFIED') &&
+      isFullyQualified(c)
+    );
+
+    if (shortlisted.length === 0) {
+      alert('No shortlisted candidates to export.');
+      return;
+    }
+
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
+    const lineWidth = pageWidth - (margin * 2);
+
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 20, { align: 'center' });
+    
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 28, { align: 'center' });
+
+    doc.setDrawColor(100);
+    doc.line(margin, 32, pageWidth - margin, 32);
+
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SHORTLIST OF QUALIFIED CANDIDATES', pageWidth / 2, 42, { align: 'center' });
+
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`For the Position of: ${job?.position_title || 'N/A'}`, pageWidth / 2, 50, { align: 'center' });
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.text('All candidates below satisfy the encoded qualification criteria for the position.', pageWidth / 2, 58, { align: 'center' });
+
+    const today = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Date Generated: ${today}`, margin, 68);
+    doc.text(`Item No.: ${job?.item_no || 'N/A'}`, margin, 75);
+    doc.text(`Total Applicants: ${candidates.length}  |  Shortlisted: ${shortlisted.length}`, margin, 82);
+
+    const tableData = shortlisted.map((c, index) => {
+      let experienceDisplay = 'N/A';
+      let status = 'FIT';
+      
+      if (c.experience && c.experience !== 'N/A') {
+        const match = c.experience.match(/([\d.]+)\/([\d.]+)/);
+        if (match) {
+          const actual = parseFloat(match[1]);
+          const required = parseFloat(match[2]);
+          if (required === 0) {
+            experienceDisplay = 'Not Required';
+          } else {
+            experienceDisplay = `${actual}/${required} yrs`;
+            if (actual > required) {
+              status = 'HIGHLY FIT';
+            }
+          }
+        } else {
+          experienceDisplay = c.experience;
+        }
+      }
+
+      const educationDisplay = cleanEducationText(c.education) || 'N/A';
+      if (educationDisplay.includes('Master') || educationDisplay.includes('PhD')) {
+        status = 'HIGHLY FIT';
+      }
+
+      return [
+        index + 1,
+        c.applicant_name,
+        educationDisplay,
+        c.eligibility !== 'None' && c.eligibility !== 'N/A' 
+          ? c.eligibility 
+          : 'N/A',
+        experienceDisplay,
+        status
+      ];
+    });
+
+    autoTable(doc, {
+      startY: 88,
+      head: [['#', 'Name', 'Education', 'Eligibility', 'Experience', 'Status']],
+      body: tableData,
+      theme: 'grid',
+      styles: {
+        fontSize: 8,
+        cellPadding: 2,
+        overflow: 'linebreak',
+        valign: 'middle',
+      },
+      headStyles: {
+        fillColor: [79, 70, 229],
+        textColor: [255, 255, 255],
+        fontStyle: 'bold',
+        fontSize: 8,
+        halign: 'center',
+      },
+      alternateRowStyles: {
+        fillColor: [245, 247, 250],
+      },
+      columnStyles: {
+        0: { cellWidth: 8, halign: 'center' },
+        1: { cellWidth: 38, halign: 'left' },
+        2: { cellWidth: 28, halign: 'left' },
+        3: { cellWidth: 30, halign: 'left' },
+        4: { cellWidth: 30, halign: 'left' },
+        5: { cellWidth: 28, halign: 'center' },
+      },
+      margin: { left: margin, right: margin },
+      tableWidth: lineWidth,
+    });
+
+    let finalY = doc.lastAutoTable.finalY + 8;
+
+    doc.setDrawColor(100);
+    doc.line(margin, finalY, pageWidth - margin, finalY);
+    finalY += 8;
+
+    const highlyFit = shortlisted.filter(c => {
+      let exceeds = false;
+      
+      if (c.experience && c.experience !== 'N/A') {
+        const match = c.experience.match(/([\d.]+)\/([\d.]+)/);
+        if (match) {
+          const actual = parseFloat(match[1]);
+          const required = parseFloat(match[2]);
+          if (required > 0 && actual > required) exceeds = true;
+        }
+      }
+      const edu = cleanEducationText(c.education);
+      if (edu.includes('Master') || edu.includes('PhD')) exceeds = true;
+      
+      return exceeds;
+    }).length;
+
+    const fit = shortlisted.length - highlyFit;
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('SUMMARY', margin, finalY);
+    finalY += 6;
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Total Qualified: ${shortlisted.length}`, margin, finalY);
+    finalY += 5;
+    doc.text(`Highly Fit: ${highlyFit}`, margin + 5, finalY);
+    finalY += 5;
+    doc.text(`Fit: ${fit}`, margin + 5, finalY);
+    finalY += 8;
+
+    if (finalY > 250) {
+      doc.addPage();
+      finalY = 20;
+    }
+
+    doc.setDrawColor(100);
+    doc.line(margin, finalY, pageWidth - margin, finalY);
+
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Prepared by:', margin, finalY + 12);
+    doc.text('Approved by:', pageWidth - margin - 35, finalY + 12);
+
+    doc.setFont('helvetica', 'normal');
+    doc.text('_________________________', margin, finalY + 22);
+    doc.text('_________________________', pageWidth - margin - 35, finalY + 22);
+
+    doc.setFontSize(8);
+    doc.text('HRMO Designate', margin, finalY + 30);
+    doc.text('HRMPSB Chairperson', pageWidth - margin - 35, finalY + 30);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'italic');
+    doc.text('This is a certified true copy of the shortlist.', pageWidth / 2, finalY + 42, { align: 'center' });
+
+    doc.setFontSize(40);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(200, 200, 200);
+    doc.text('FOR HRMPSB REVIEW', pageWidth / 2, 160, { align: 'center', angle: 45 });
+    doc.setTextColor(0);
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7);
+      doc.setTextColor(150);
+      doc.text(`Page ${i} of ${pageCount}`, pageWidth / 2, 285, { align: 'center' });
+      doc.text('FOR HRMPSB REVIEW USE', margin, 285);
+      doc.text(`Generated: ${today}`, pageWidth - margin, 285, { align: 'right' });
+      doc.setTextColor(0);
+    }
+
+    doc.save(`Shortlist_${job?.position_title?.replace(/\s+/g, '_') || 'Candidates'}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   const updateCandidateStatus = async (applicationId, newStatus) => {
     if (!window.confirm(`Change status to "${newStatus}"?`)) return;
@@ -810,7 +866,6 @@ if (aEligibility !== bEligibility) {
       
       if (jobError) throw jobError;
       
-      // Update application status
       const { error } = await supabase
         .from('applications')
         .update({ 
@@ -821,9 +876,7 @@ if (aEligibility !== bEligibility) {
       
       if (error) throw error;
       
-      // 🔥 NEW: If status is INTERVIEW_SCHEDULED, create an interview record
       if (newStatus === 'INTERVIEW_SCHEDULED') {
-        // Check if interview already exists for this application
         const { data: existingInterview, error: checkError } = await supabase
           .from('interviews')
           .select('id')
@@ -831,11 +884,9 @@ if (aEligibility !== bEligibility) {
           .maybeSingle();
         
         if (!existingInterview) {
-          // Get current user
           const { data: userData } = await supabase.auth.getUser();
           const userId = userData.user?.id || null;
           
-          // Create interview record with TBD status
           const { error: insertError } = await supabase
             .from('interviews')
             .insert({
@@ -1036,6 +1087,108 @@ if (aEligibility !== bEligibility) {
          
             </div>
 
+            {/* Mass Select Toggle & Actions */}
+            <div className="mass-select-btn" style={{
+              background: massSelectMode ? '#f0f4ff' : 'transparent',
+              borderRadius: '8px',
+              border: massSelectMode ? '1px solid #4f46e5' : '1px solid transparent',
+              transition: 'all 0.3s ease'
+            }}>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    setMassSelectMode(!massSelectMode);
+                    if (massSelectMode) setSelectedRows([]);
+                  }}
+                  style={{
+                    padding: '6px 16px',
+                    background: massSelectMode ? '#dc2626' : '#4f46e5',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: '500',
+                    fontSize: '13px',
+                     display: 'inline-flex',
+                  }}
+                >
+              {massSelectMode ? (
+    '✕ Cancel'
+  ) : (
+    <>
+      <CheckboxMassIcon size={16}  />
+      Mass Select
+    </>
+  )}
+
+                </button>
+
+                {massSelectMode && (
+                  <>
+                    <button
+                      onClick={toggleSelectAll}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#e9ecef',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        fontSize: '13px'
+                      }}
+                    >
+                      {filteredCandidates.every(c => selectedRows.includes(c.id)) ? 'Deselect All' : 'Select All'}
+                    </button>
+
+                    <span style={{ fontSize: '13px', color: '#6c757d' }}>
+                      {selectedRows.length} selected
+                    </span>
+                  </>
+                )}
+              </div>
+
+              {massSelectMode && selectedRows.length > 0 && (
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                  <select
+                    value={bulkStatus}
+                    onChange={(e) => setBulkStatus(e.target.value)}
+                    style={{
+                      padding: '6px 12px',
+                      border: '1px solid #dee2e6',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      background: 'white'
+                    }}
+                  >
+                    <option value="PENDING">Pending</option>
+                    <option value="REVIEWING">Under Review</option>
+                    <option value="SHORTLISTED">Shortlisted</option>
+                    <option value="QUALIFIED">Qualified</option>
+                    <option value="INTERVIEW_SCHEDULED">Interview Scheduled</option>
+                    <option value="HIRED">Hired</option>
+                    <option value="NOT_SELECTED">Not Selected</option>
+                    <option value="REJECTED">Rejected</option>
+                  </select>
+                  <button
+                    onClick={() => bulkUpdateStatus(bulkStatus)}
+                    disabled={bulkUpdating}
+                    style={{
+                      padding: '6px 16px',
+                      background: '#10b981',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      cursor: bulkUpdating ? 'not-allowed' : 'pointer',
+                      fontWeight: '500',
+                      fontSize: '13px',
+                      opacity: bulkUpdating ? 0.6 : 1
+                    }}
+                  >
+                    {bulkUpdating ? 'Updating...' : `Apply to ${selectedRows.length}`}
+                  </button>
+                </div>
+              )}
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 {compareMode && (
@@ -1043,74 +1196,41 @@ if (aEligibility !== bEligibility) {
                     <span style={{ fontSize: '13px', color: '#6c757d' }}>
                       Selected {selectedCompareCandidates.length}/2 candidates
                     </span>
-                    <button 
-                      onClick={clearCompareSelection}
-                      style={{
-                        padding: '6px 12px',
-                        background: '#e9ecef',
-                        border: 'none',
-                        borderRadius: '6px',
-                        cursor: 'pointer',
-                        fontSize: '12px'
-                      }}
-                    >
+                    <button className="clear-compare-button"
+                      onClick={clearCompareSelection}>
                       ✕ Clear
                     </button>
                     {selectedCompareCandidates.length === 2 && (
-                     <button 
-                        onClick={openCompareModal}
-                        style={{
-                          display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    padding: '8px 16px',
-    background: '#4f46e5',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontWeight: '600',
-    fontSize: '13px'
-                        }}
-                      >
+                     <button className="compare-blue-button"
+                        onClick={openCompareModal}>
                           <img 
     src={compareplumpLogo} 
     alt="compare" 
     style={{ 
-      width: 16, 
-      height: 16,
+      width: 16, height: 16,
       filter: 'brightness(0) saturate(100%) invert(100%) brightness(200%)'
-    }} 
-  />  Compare
-                      </button>
+    }} />  Compare
+                    </button>
                     )}
                   </>
                 )}
               </div>
-              <button 
-                onClick={exportShortlistPDF}
-                style={{
-                  padding: '10px 20px',
-                  background: '#dc3545',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px'
-                }}
-              >
-                📄 Export Shortlist (PDF)
-              </button>
+          
             </div>
 
             <div className="table-wrapper">
               <table>
                 <thead>
                   <tr>
+                    {massSelectMode && (
+                      <th style={{ width: '40px' }}>
+                        <input
+                          type="checkbox"
+                          checked={filteredCandidates.length > 0 && filteredCandidates.every(c => selectedRows.includes(c.id))}
+                          onChange={toggleSelectAll}
+                        />
+                      </th>
+                    )}
                     <th>#</th>
                     <th>Name</th>
                     <th>Documents</th>
@@ -1123,7 +1243,7 @@ if (aEligibility !== bEligibility) {
                 <tbody>
                   {filteredCandidates.length === 0 ? (
                     <tr>
-                      <td colSpan="7">
+                      <td colSpan={massSelectMode ? 8 : 7}>
                         <div className="empty-state">No candidates found</div>
                       </td>
                     </tr>
@@ -1135,6 +1255,15 @@ if (aEligibility !== bEligibility) {
 
                       return (
                         <tr key={candidate.id}>
+                          {massSelectMode && (
+                            <td>
+                              <input
+                                type="checkbox"
+                                checked={selectedRows.includes(candidate.id)}
+                                onChange={() => toggleRowSelection(candidate.id)}
+                              />
+                            </td>
+                          )}
                           <td className="rank-cell">#{candidate.rank}</td>
                           <td>
                             <div className="applicant-cell">
@@ -1256,32 +1385,12 @@ if (aEligibility !== bEligibility) {
             </div>
 
             {/* View Interview Schedule Button - Placed at the bottom of the table */}
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              marginTop: '24px',
-              marginBottom: '8px'
-            }}>
-              <button 
+            <div className = "view-interview-schedule-div" >
+              <button className="view-interview-schedule-button"
                 onClick={() => {
                   navigate(`/hr/jobs/${jobId}/interviews`, { 
                     state: { from: location.pathname } 
                   });
-                }}
-                style={{
-                  padding: '12px 32px',
-                  background: '#4f46e5',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '10px',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  fontSize: '16px',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)'
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.background = '#4338ca';
@@ -1296,7 +1405,11 @@ if (aEligibility !== bEligibility) {
               >
                 <img src={calendarminimalLogo} alt="Community"
            style={{ width: 18, height: 18,
-          filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }} /> View Interview Schedule
+           filter: 'brightness(0) saturate(100%) invert(100%) brightness(90%)' }} /> View Interview Schedule
+              </button>
+              <button  className="export-shortlist-btn"
+                onClick={exportShortlistPDF} >
+                📄 Export Shortlist (PDF)
               </button>
             </div>
           </>
@@ -1380,7 +1493,7 @@ if (aEligibility !== bEligibility) {
               </div>
 
               <div className="detail-section">
-  <h4>📄 Submitted Documents</h4>
+  <h4> Submitted Documents</h4>
   <ul className="docs-list" style={{ listStyle: 'none', padding: 0, margin: 0 }}>
     <li style={{ 
       display: 'flex', 
@@ -1519,8 +1632,16 @@ if (aEligibility !== bEligibility) {
                     className="schedule-btn" 
                     onClick={() => updateCandidateStatus(selectedApplication.id, 'INTERVIEW_SCHEDULED')}
                     disabled={updatingStatus}
+                    style={{
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+  }}
                   >
-                    📅 Schedule Interview
+                     <img src={calendarminimalLogo} alt="Community"
+           style={{ width: 18, height: 18, 
+          filter: 'brightness(0) saturate(100%) invert(100%) brightness(100%)' }} />  Schedule Interview
                   </button>
                 )}
               </div>

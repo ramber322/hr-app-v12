@@ -6,6 +6,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 // Public Pages
 import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
+import SendSmsTest from './pages/SendSmsTest';
+import EmailTest from './pages/EmailTest';
 
 // HR Pages
 import DashboardPage from "./pages/DashboardPage";
@@ -91,6 +93,22 @@ function App() {
             </PublicRoute>
           } 
         />
+
+{/* ==================== SMS TEST ROUTE ==================== */}
+  <Route 
+    path="/test-sms" 
+     element = { <PublicRoute>
+              <SendSmsTest />
+            </PublicRoute> }
+  />
+
+{/* ==================== SMS TEST ROUTE ==================== */}
+  <Route 
+    path="/test-email" 
+     element = { <PublicRoute>
+              <EmailTest />
+            </PublicRoute> }
+  />        
         <Route 
           path="/signup" 
           element={

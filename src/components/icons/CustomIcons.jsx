@@ -1072,4 +1072,24 @@ export function UserAddActivityLogIcon({ size = 24, className = "" }) {
   );
 }
 
-
+export function CheckboxMassIcon({ size = 24, className = "" }) {
+  return (
+    <svg
+      className={className}
+      width={size}
+      height={size}
+      viewBox="0 0 512 512"
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="32"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+        style={{ marginTop: '2px',  position: 'relative',
+    left: '-4px' }}
+    >
+      <polyline points="352 176 217.6 336 160 272" />
+      <rect x="64" y="64" width="384" height="384" rx="48" ry="48" />
+    </svg>
+  );
+}
