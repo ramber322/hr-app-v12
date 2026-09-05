@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
-import { DocumentCheckIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
+import { DocumentCheckIcon, PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
 import JobCandidateButton from "../components/JobCandidateButton";
 import communityLogo from '../assets/community3-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
@@ -1053,7 +1053,7 @@ export default function JobCandidatesPage() {
       <Navbar userRole="hr" />
 
       <div className="candidate-container">
-        <div className="page-header">
+        <div className="page-header"  >
           <div className="back-link" onClick={() => navigate(returnPath)} 
            style={{ 
     display: 'flex', 
@@ -1479,7 +1479,7 @@ export default function JobCandidatesPage() {
               </button>
               <button  className="export-shortlist-btn"
                 onClick={exportShortlistPDF} >
-                📄 Export Shortlist (PDF)
+                <PdfIcon size={14}/> Export Shortlist (PDF)
               </button>
             </div>
           </>

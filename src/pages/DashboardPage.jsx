@@ -5,6 +5,9 @@ import { supabase } from "../lib/supabase";
 import "../styles/DashboardPage.css";
 import { CalendarColoredIcon, ClockIcon, DocumentColoredIcon, GraphChartIcon, ConfettiIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, BriefcaseIcon, DocumentListIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png';
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
+import documentplumpLogo from '../assets/document-plump-dashboard-icon.png';
+import openjobLogo from '../assets/open-job-icon.png';
 import Loader from '../components/Loader';
 // Chart.js imports
 import {
@@ -195,26 +198,26 @@ export default function DashboardPage() {
   const trendsData = {
     labels: months,
     datasets: [
-      {
-        label: 'Applied',
-        data: [65, 78, 90, 85, 95, 110, 105, 120, 115, 130, 125, 140],
-        borderColor: '#4f46e5',
-        backgroundColor: 'rgba(79, 70, 229, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 3,
-        pointBackgroundColor: '#4f46e5',
-      },
-      {
-        label: 'Hired',
-        data: [12, 15, 18, 20, 22, 25, 28, 30, 32, 35, 38, 40],
-        borderColor: '#10b981',
-        backgroundColor: 'rgba(16, 185, 129, 0.1)',
-        fill: true,
-        tension: 0.4,
-        pointRadius: 3,
-        pointBackgroundColor: '#10b981',
-      },
+    {
+  label: 'Applied',
+  data: [65, 78, 90, 85, 95, 110, 105, 120, 115, 130, 125, 140],
+  borderColor: '#4f46e5',  // Indigo
+  backgroundColor: 'rgba(79, 70, 229, 0.1)',
+  fill: true,
+  tension: 0.4,
+  pointRadius: 3,
+  pointBackgroundColor: '#4f46e5',
+},
+{
+  label: 'Hired',
+  data: [12, 15, 18, 20, 22, 25, 28, 30, 32, 35, 38, 40],
+  borderColor: '#60a5fa',  // Sky Blue
+  backgroundColor: 'rgba(96, 165, 250, 0.1)',
+  fill: true,
+  tension: 0.4,
+  pointRadius: 3,
+  pointBackgroundColor: '#60a5fa',
+},
       {
         label: 'Rejected',
         data: [20, 25, 30, 28, 32, 35, 30, 40, 38, 42, 45, 48],
@@ -284,38 +287,38 @@ export default function DashboardPage() {
   };
 
   const statCards = [
-  {
-    title: 'Total Jobs',
-    value: stats.totalJobs,
-    change: '+1.4%',
-    icon: BriefcaseIcon,
-    color: '#4f46e5',
-    bgColor: '#eef2ff',
-  },
-  {
-    title: 'Total Applications',
-    value: stats.totalApplicants,
-    change: '+2.4%',
-    icon: DocumentListIcon,
-    color: '#ff6131',  // Now this will work!
-    bgColor: '#fff7ed', // Light orange background
-    iconSize: 12,
-  },
-  {
-    title: 'Total Hired',
-    value: stats.totalHired,
-    change: '+1.2%',
-    icon: ConfettiIcon,
-    color: '#48eb79',
-    bgColor: 'rgb(226, 255, 239)',
-  },
+ {
+  title: 'Total Jobs',
+  value: stats.totalJobs,
+  change: '+1.4%',
+  icon: BriefcaseIcon,
+  color: '#4f46e5',
+  bgColor: '#eef2ff',
+},
+{
+  title: 'Total Applications',
+  value: stats.totalApplicants,
+  change: '+2.4%',
+  icon: DocumentListIcon,
+  color: '#f59e0b',
+  bgColor: '#fffbeb',
+},
+{
+  title: 'Total Hired',
+  value: stats.totalHired,
+  change: '+1.2%',
+  icon: ConfettiIcon,
+  color: '#0d9488',
+  bgColor: '#f0fdfa',
+},
   {
     title: 'Open Jobs',
     value: stats.openJobs,
     change: '-0.8%',
-    icon: ColoredPushPinIcon,
+     icon: openjobLogo,  // ← Use the imported PNG
     color: '#ef4444',
-    bgColor: '#fef2f2',
+    bgColor: '#fde8e8',
+     isImage: true,  // ← Flag to indicate it's an image
   },
 ];
 
@@ -682,7 +685,7 @@ export default function DashboardPage() {
         <style>{styles}</style>
 
         <div className="dashboard-header">
-          <h1>Welcome Back, Admin!</h1>
+          <h1>Dashboard Overview</h1>
           <p>Here's your hiring summary for this month.</p>
         </div>
 
@@ -702,11 +705,18 @@ export default function DashboardPage() {
                     color: card.color,
                   }}
                 >
-                  {isComponent ? (
-                    <IconComponent size={28} />
-                  ) : (
-                    <span style={{ fontSize: '20px' }}>{card.icon}</span>
-                  )}
+                 {card.isImage ? (
+  <img 
+    src={card.icon} 
+    alt={card.title} 
+    style={{ width: 28, height: 28, filter: 'brightness(0) saturate(100%) invert(23%) sepia(100%) saturate(2500%) hue-rotate(350deg) brightness(90%) contrast(100%)' }} 
+    
+  />
+) : isComponent ? (
+  <IconComponent size={28} />
+) : (
+  <span style={{ fontSize: '20px' }}>{card.icon}</span>
+)}
                 </div>
                 <span className="stat-value">{card.value}</span>
                 <span className="stat-title">{card.title}</span>
@@ -739,7 +749,13 @@ export default function DashboardPage() {
           <div className="dashboard-card">
             <div className="card-header">
             <h3 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-  <DocumentColoredIcon size={24} />
+    <img 
+    src={documentplumpLogo} 
+    alt="Applications" 
+    style={{ width: 22, height: 22, 
+      filter: 'brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%)'
+     }} 
+  />
   Application Status
 </h3>
             </div>
@@ -814,7 +830,7 @@ export default function DashboardPage() {
           <div className="dashboard-card">
             <div className="card-header">
              <h3 className="icon-title">
-  <img src={calendarLogo} alt="Calendar" className="calendar-icon" />
+  <img src={calendarminimalLogo} alt="Calendar" className="calendar-icon" />
   {monthNames[currentMonth.getMonth()]}, {currentMonth.getFullYear()}
 </h3>
             </div>

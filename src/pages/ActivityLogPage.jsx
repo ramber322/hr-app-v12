@@ -405,7 +405,7 @@ export default function ActivityLogPage() {
       <div className="activity-container">
         <style>{styles}</style>
 
-        <div className="page-header">
+        <div className="page-header" >
          <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 <img 
   src={clipboardactivitylogLogo} 

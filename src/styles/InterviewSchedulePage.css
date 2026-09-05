@@ -571,18 +571,26 @@
 
 .btn-secondary {
   padding: 10px 20px;
-  background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   color: #495057;
   transition: all 0.2s;
+
+
+ background: #d3f0f9; 
+  color: #1a3a5c;  /* Navy text */
 }
 
 .btn-secondary:hover {
-  background: #e9ecef;
+  background: #b8e4f0;
 }
+
+.btn-secondary:active {
+  background: #9cd8e8;
+}
+
 
 .btn-primary {
   padding: 10px 20px;
@@ -786,4 +794,162 @@
   text-decoration: none;
   margin-bottom: 2px;
   text-decoration: inherit;
+}
+
+/* Modal Overlay - Light */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+/* Card - Simple */
+.confirm-card {
+  background: white;
+  border-radius: 12px;
+  width: 400px;
+  max-width: 90vw;
+  padding: 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Header */
+.confirm-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.confirm-icon {
+  font-size: 28px;
+}
+
+.confirm-card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1f36;
+}
+
+/* Body */
+.confirm-card-body {
+  margin-bottom: 20px;
+}
+
+.confirm-card-body p {
+  margin: 0;
+  font-size: 14px;
+  color: #4a5568;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+
+/* Footer */
+.confirm-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #dedfe1;
+      background: rgba(0, 140, 255, 0.082);
+    
+}
+
+.confirm-card-footer button {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+/* Cancel Button */
+.btn-cancel {
+ background: #d3f0f9; 
+  color: #1a3a5c;  /* Navy text */
+}
+
+.btn-cancel:hover {
+  background: #b8e4f0;  /* ← Slightly darker on hover */
+}
+
+.btn-cancel:active {
+  background: #9cd8e8;  /* ← Even darker when clicked */
+}
+
+/* Confirm Button - Dynamic Colors */
+.btn-confirm {
+  color: white;
+}
+
+.btn-confirm.complete {
+  background: #0d9488;
+}
+
+.btn-confirm.complete:hover {
+  background: #0f766e;
+}
+
+.btn-confirm.noshow {
+  background: #dc2626;
+}
+
+.btn-confirm.noshow:hover {
+  background: #b91c1c;
+}
+
+.btn-confirm.cancel {
+  background: #f59e0b;
+}
+
+.btn-confirm.cancel:hover {
+  background: #d97706;
+}
+
+
+.btn-reschedule-batch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #E65100  ;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 13px;
+  margin-right: 32px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-reschedule-batch:hover:not(:disabled) {
+  background: #cc5200;  /* Darker orange */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 81, 0, 0.3);
+}
+
+.btn-reschedule-batch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resched-single-btn {
+  margin-left: 10px;
 }

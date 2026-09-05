@@ -12,7 +12,10 @@ import locationplumpLogo from '../assets/location-plump-icon.png';
 import noteplumpLogo from '../assets/note-plump-icon.png';
 import phoneLogo from '../assets/phone-icon.png';
 
-import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon, CircleIcon, CheckInterviewIcon, UserBookIcon   } from "../components/icons/CustomIcons";
+import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon,
+CircleIcon, CheckInterviewIcon, UserBookIcon, CalendarRefreshIcon,CheckSquareIcon,
+CheckMarkSquareInterviewIcon
+    } from "../components/icons/CustomIcons";
 
 import { 
   getJobInterviews, 
@@ -620,7 +623,7 @@ const handleAction = (interview, action) => {
   const messages = {
     complete: `Mark "${getApplicantName(interview)}" as completed?`,
     noshow: `Mark "${getApplicantName(interview)}" as NO SHOW?`,
-    cancel: `Cancel interview for "${getApplicantName(interview)}"?\n\nStatus will change to QUALIFIED (can be re-scheduled later).`,
+    cancel: `Cancel interview for "${getApplicantName(interview)}"?`,
   };
   setConfirmMessage(messages[action]);
   setShowConfirmModal(true);
@@ -669,7 +672,7 @@ const handleAction = (interview, action) => {
       <Navbar userRole="hr" />
       
       <div className="interview-schedule-page">
-        <div className="page-header">
+        <div className="page-header" >
           <div>
             <button 
               className="back-btn"
@@ -897,19 +900,37 @@ const handleAction = (interview, action) => {
 
         <div className="modal-actions">
           <button 
-            className="btn-secondary"
+            className="btn-secondary" 
             onClick={() => setShowBulkRescheduleModal(false)}
           >
             Cancel
           </button>
           <button 
-            className="btn-primary"
-            onClick={handleBulkReschedule}
-            disabled={!bulkRescheduleForm.date || !bulkRescheduleForm.time || bulkRescheduling}
-            style={{ background: '#E65100' }}
-          >
-            {bulkRescheduling ? 'Rescheduling...' : '🔄 Reschedule All'}
-          </button>
+             className="btn-primary"
+  onClick={handleBulkReschedule}
+  disabled={!bulkRescheduleForm.date || !bulkRescheduleForm.time || bulkRescheduling}
+  style={{ 
+    background: '#E65100',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    fontWeight: '600',
+    fontSize: '14px',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+   
+    opacity: (!bulkRescheduleForm.date || !bulkRescheduleForm.time || bulkRescheduling) ? 0.6 : 1
+  }}
+>
+  {bulkRescheduling ? ('Rescheduling...') : 
+  (<>  <span > <CalendarRefreshIcon size={22}  /> </span>
+    <span style={{ marginRight: '40px' }}>  Reschedule All </span>
+    </>
+  )}
+</button>
         </div>
       </div>
     </div>
@@ -1065,7 +1086,7 @@ const handleAction = (interview, action) => {
                                     onClick={() => handleAction(interview, 'complete')}
                                     title="Complete"
                                   >
-                                    <CheckInterviewIcon size={18} />
+                                    <CheckMarkSquareInterviewIcon size={18} />
                                   </button>
                                   <button 
                                     className="btn-noshow"
@@ -1133,18 +1154,7 @@ const handleAction = (interview, action) => {
     onClick={openBulkRescheduleModal}
     disabled={selectedApplicants.length === 0}
     style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '6px',
-      padding: '8px 16px',
-      background: '#E65100',
-      color: 'white',
-      border: 'none',
-      borderRadius: '6px',
       cursor: selectedApplicants.length === 0 ? 'not-allowed' : 'pointer',
-      fontWeight: '500',
-      fontSize: '13px',
-      marginRight: '32px',
       opacity: selectedApplicants.length === 0 ? 0.5 : 1
     }}
   >
@@ -1162,7 +1172,10 @@ const handleAction = (interview, action) => {
         <div className="modal-overlay" onClick={() => setShowScheduleModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h3>📅 Schedule Interviews</h3>
+              <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }} >   <img src={calendarminimalLogo} alt="Calendar" style={{ width: 19, height: 19,
+     filter: 'brightness(0) saturate(100%) invert(15%) sepia(60%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'
+         
+   }} /> Schedule Interview</h3>
               <button className="close-modal" onClick={() => setShowScheduleModal(false)}>×</button>
             </div>
             <div className="modal-body">
@@ -1391,10 +1404,20 @@ const handleAction = (interview, action) => {
                 </button>
                 <button 
   className="btn-primary"
+  style={{  background: '#E65100',
+   
+    color: 'white',
+    border: 'none',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '4px',
+   }}
   onClick={handleReschedule}
   disabled={!rescheduleForm.date || !rescheduleForm.time || rescheduling}
 >
-  {rescheduling ? 'Rescheduling...' : '🔄 Reschedule'}
+  {rescheduling ? ('Rescheduling...') : ( <>  <span style={{  }}> <CalendarRefreshIcon className="resched-single-btn" size={22} 
+   /> </span>   <span style={{ marginRight: '40px' }}>Reschedule</span> </> )}
 </button>
               </div>
             </div>
@@ -1510,34 +1533,49 @@ const handleAction = (interview, action) => {
         </div>
       )}
 
-      {/* Confirm Modal */}
-      {showConfirmModal && (
-        <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
-          <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>⚠️ Confirm</h3>
-              <button className="close-modal" onClick={() => setShowConfirmModal(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <p className="confirm-message" style={{ whiteSpace: 'pre-line' }}>{confirmMessage}</p>
-              <div className="confirm-actions">
-                <button 
-                  className="btn-secondary"
-                  onClick={() => setShowConfirmModal(false)}
-                >
-                  Cancel
-                </button>
-                <button 
-                  className={`btn-confirm-${confirmAction}`}
-                  onClick={confirmActionHandler}
-                >
-                  Confirm
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+    {/* Confirm Modal - Lightweight */}
+{showConfirmModal && (
+  <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
+      {/* Simple Header with Icon */}
+      <div className="confirm-card-header">
+        <span className="confirm-icon">
+           {confirmAction === 'complete' && <span style={{ color: '#3c6741' }}>
+  <CheckMarkSquareInterviewIcon size={42}  color="#43ae4d"/>
+</span>}
+          {confirmAction === 'noshow' && '🚫'}
+          {confirmAction === 'cancel' && '❌'}
+        </span>
+        <h3>
+          {confirmAction === 'complete' && 'Complete Interview'}
+          {confirmAction === 'noshow' && 'Mark as No Show'}
+          {confirmAction === 'cancel' && 'Cancel Interview'}
+        </h3>
+      </div>
+      
+      {/* Message */}
+      <div className="confirm-card-body">
+        <p>{confirmMessage}</p>
+      </div>
+      
+      {/* Actions */}
+      <div className="confirm-card-footer" style={{ margin: '0 -24px -24px -24px', padding: '16px 24px', borderRadius: '0 0 12px 12px' }}>
+        <button 
+          className="btn-cancel"
+          onClick={() => setShowConfirmModal(false)}
+        >
+          Cancel
+        </button>
+        <button 
+          className={`btn-confirm ${confirmAction}`}
+          onClick={confirmActionHandler}
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }

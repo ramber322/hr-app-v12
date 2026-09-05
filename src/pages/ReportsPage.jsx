@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import "../styles/ReportsPage.css";
  import Loader from '../components/Loader';
 
-import { ReportsChartIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
+import { ReportsChartIcon, EnterpriseIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
 
 // Chart.js imports
 import {
@@ -317,7 +317,7 @@ export default function ReportsPage() {
       {
         label: 'Applications',
         data: monthCounts.length > 0 ? monthCounts : [0],
-        backgroundColor: 'rgba(43, 108, 176, 0.7)',
+        backgroundColor: '#3b82f6',
         borderColor: 'rgba(43, 108, 176, 1)',
         borderWidth: 1,
         borderRadius: 4,
@@ -352,16 +352,16 @@ export default function ReportsPage() {
   const statusLabels = Object.keys(reports.statusBreakdown);
   const statusCounts = Object.values(reports.statusBreakdown);
 
-  const statusChartData = {
-    labels: statusLabels.length > 0 ? statusLabels : ['No Data'],
-    datasets: [
-      {
-        data: statusCounts.length > 0 ? statusCounts : [1],
-        backgroundColor: ['#ED8936', '#4299E1', '#48BB78', '#FC8181'],
-        borderWidth: 0,
-      },
-    ],
-  };
+const statusChartData = {
+  labels: statusLabels.length > 0 ? statusLabels : ['No Data'],
+  datasets: [
+    {
+      data: statusCounts.length > 0 ? statusCounts : [1],
+      backgroundColor: ['#1a3a5c', '#3b82f6', '#60a5fa', '#0d9488'],
+      borderWidth: 0,
+    },
+  ],
+};
 
   const statusOptions = {
     responsive: true,
@@ -383,19 +383,19 @@ export default function ReportsPage() {
   const deptLabels = reports.applicationsByDepartment.slice(0, 8).map(d => d.department);
   const deptCounts = reports.applicationsByDepartment.slice(0, 8).map(d => d.count);
 
-  const deptChartData = {
-    labels: deptLabels.length > 0 ? deptLabels : ['No Data'],
-    datasets: [
-      {
-        label: 'Applications',
-        data: deptCounts.length > 0 ? deptCounts : [0],
-        backgroundColor: 'rgba(72, 187, 120, 0.7)',
-        borderColor: 'rgba(72, 187, 120, 1)',
-        borderWidth: 1,
-        borderRadius: 4,
-      },
-    ],
-  };
+const deptChartData = {
+  labels: deptLabels.length > 0 ? deptLabels : ['No Data'],
+  datasets: [
+    {
+      label: 'Applications',
+      data: deptCounts.length > 0 ? deptCounts : [0],
+      backgroundColor: 'rgba(13, 148, 136, 0.7)',
+borderColor: 'rgba(13, 148, 136, 1)',
+      borderWidth: 1,
+      borderRadius: 4,
+    },
+  ],
+};
 
   const deptOptions = {
     responsive: true,
@@ -598,7 +598,7 @@ h3 svg {
       <div className="reports-container">
         <style>{styles}</style>
 
-        <div className="page-header">
+        <div className="page-header" >
          <h1 className="icon-title">
   <ReportsChartIcon size={28} />
   Reports
@@ -665,7 +665,7 @@ h3 svg {
         <div className="dashboard-grid">
           <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
             <div className="card-header">
-              <h3><DocumentColoredIcon/> Applications By Department</h3>
+              <h3><EnterpriseIcon color1="#0d9488" color2="#99f6e4" color3="#ffffff" />Applications By Department</h3>
             </div>
             <div className="card-body">
               <div className="chart-container" style={{ height: '300px' }}>

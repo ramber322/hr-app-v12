@@ -11,7 +11,9 @@ import mailBlackLogo from '../assets/mail-blue-icon.png';
 import documentBlueLogo from '../assets/document-blue-icon.png';
 import clockBlueLogo from '../assets/clock-blue-icon.png';
 import handshakeBlueLogo from '../assets/handshake-blue-icon.png';
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import interviewBlueLogo from '../assets/interview-blue-icon.png';
+
 import WeatherWidget from "../components/WeatherWidget";
 import Loader from '../components/Loader';
 

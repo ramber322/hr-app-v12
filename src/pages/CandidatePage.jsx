@@ -426,11 +426,11 @@ export default function CandidatesPage() {
        <h1 style={{ 
   display: 'flex', 
   alignItems: 'center', 
+  justifyContent: 'flex-start',
   gap: '10px',
-  background: '#cde6ff',
   padding: '12px 20px',
   borderRadius: '8px',
-  margin: 0
+  marginLeft: '-20px'
 }}>
   <DocumentListIcon color="red" size={33} />
   Applications

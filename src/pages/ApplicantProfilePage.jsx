@@ -105,7 +105,7 @@ function ApplicantProfilePage() {
   const styles = `
     .profile-page {
       min-height: 100vh;
-      background: #eefbff;
+      background: #F5F6F8;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       padding-top: 70px;
       position: relative;
@@ -153,13 +153,13 @@ function ApplicantProfilePage() {
     }
 
     .save-btn {
-      background: #10b981;
+      background: #0d9488;
       color: white;
       border: none;
     }
 
     .save-btn:hover {
-      background: #059669;
+      background: #0f766e;
     }
 
     .cancel-btn {

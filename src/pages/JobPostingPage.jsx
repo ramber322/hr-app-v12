@@ -773,7 +773,8 @@ export default function JobPostingPage() {
               )}
 
               <div className="modal-actions" style={{ marginTop: 24 }}>
-                <button className="cancel-btn" onClick={() => setShowDetails(null)} style={{ flex: 1 }}>
+                <button className="cancel-btn"  onClick={() => setShowDetails(null)}
+                 style={{ flex: 1, backgroundColor: '#D3F0F9', color: '1A3A5C' }}>
                   Close
                 </button>
                 <button 
