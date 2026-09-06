@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/DashboardPage.css";
-import { CalendarColoredIcon, ClockIcon, DocumentColoredIcon, GraphChartIcon, ConfettiIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, BriefcaseIcon, DocumentListIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
+import { CalendarColoredIcon, ClockIcon, DocumentColoredIcon, DocumentListDashboardIcon,  GraphChartIcon, ConfettiIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, BriefcaseIcon, DocumentListIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import documentplumpLogo from '../assets/document-plump-dashboard-icon.png';
@@ -299,7 +299,7 @@ export default function DashboardPage() {
   title: 'Total Applications',
   value: stats.totalApplicants,
   change: '+2.4%',
-  icon: DocumentListIcon,
+  icon: DocumentListDashboardIcon,
   color: '#f59e0b',
   bgColor: '#fffbeb',
 },
@@ -830,7 +830,7 @@ export default function DashboardPage() {
           <div className="dashboard-card">
             <div className="card-header">
              <h3 className="icon-title">
-  <img src={calendarminimalLogo} alt="Calendar" className="calendar-icon" />
+  <img src={calendarminimalLogo} alt="calendar" className="calendar-icon" />
   {monthNames[currentMonth.getMonth()]}, {currentMonth.getFullYear()}
 </h3>
             </div>

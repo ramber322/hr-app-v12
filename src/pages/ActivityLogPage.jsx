@@ -4,6 +4,7 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/ActivityLogPage.css";
 import clipboardactivitylogLogo from '../assets/clipboard-activitylog-icon.png';
+import activitylogLogo from '../assets/activitylog-new-icon.png';
 import { BriefcaseActivityLogIcon, UpdatedPencilActivityLogIcon, MailActivityLogIcon, UserAddActivityLogIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
@@ -408,11 +409,12 @@ export default function ActivityLogPage() {
         <div className="page-header" >
          <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 <img 
-  src={clipboardactivitylogLogo} 
+  src={activitylogLogo} 
   alt="Activity Log" 
   style={{ 
     width: 38, 
     height: 38,
+    
     filter: 'brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%)'
   }} 
 />

@@ -113,6 +113,7 @@
   font-size: 12px;
   color: #dc3545;
   margin-bottom: 16px;
+  gap: 3px;
 }
 
 .button-group {
@@ -680,4 +681,6 @@ hr {
   height: 18px;
   width: 18px;
   margin-left: 5px;
+  filter: brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%);
+
 }

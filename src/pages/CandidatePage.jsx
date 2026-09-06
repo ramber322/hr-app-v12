@@ -432,7 +432,7 @@ export default function CandidatesPage() {
   borderRadius: '8px',
   marginLeft: '-20px'
 }}>
-  <DocumentListIcon color="red" size={33} />
+  <DocumentListIcon color=""   size={33} />
   Applications
 </h1>
           <p>View and manage all job applications across all postings</p>

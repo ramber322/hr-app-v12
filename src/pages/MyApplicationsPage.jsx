@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import "../styles/MyApplicationsPage.css";
 import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import Loader from '../components/Loader';
 
 export default function MyApplicationsPage() {
@@ -428,7 +429,7 @@ export default function MyApplicationsPage() {
                     <img src={locationLogo} alt="location" className="location-icon" /> {job?.place_of_assignment || 'N/A'}
                   </div>
                   <div className="job-details">
-                    <span><img src={calendarLogo} alt="document" className="calendar-blue-icon" /> Applied: {formatDate(app.applied_date)}</span>
+                    <span><img src={calendarminimalLogo} alt="document" className="calendar-blue-icon" /> Applied: {formatDate(app.applied_date)}</span>
                     {displayScore !== null && displayScore !== undefined && (
                       <span style={{ 
                         background: displayScore >= 80 ? '#e8f5e9' : displayScore >= 60 ? '#fff3e0' : '#ffebee',

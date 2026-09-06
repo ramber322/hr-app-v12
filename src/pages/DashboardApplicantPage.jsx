@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
-import { TimeSandIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
+import { TimeSandIcon, ApplicantClockIcon, HandshakeIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
 import '/src/styles/DashboardApplicantPage.css';
@@ -13,6 +13,10 @@ import clockBlueLogo from '../assets/clock-blue-icon.png';
 import handshakeBlueLogo from '../assets/handshake-blue-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import interviewBlueLogo from '../assets/interview-blue-icon.png';
+import applicantDocumentLogo from '../assets/applicant-document-icon.png';
+import applicantresumeLogo from '../assets/applicant-resume-icon.png';
+import applicantrecentapplicationLogo from '../assets/applicant-recentapplication-icon.png';
+
 
 import WeatherWidget from "../components/WeatherWidget";
 import Loader from '../components/Loader';
@@ -519,34 +523,97 @@ export default function DashboardApplicant() {
           </div>
         </div>
 
-        <div className="stats-cards">
-          <div className="stat-card">
-            <span className="stat-icon"><img src={documentBlueLogo} alt="document" className="document-blue-icon" /></span>
-            <span className="stat-number">{stats.total}</span>
-            <span className="stat-label">Total Applications</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon"><img src={clockBlueLogo} alt="Calendar" className="clock-blue-icon" /></span>
-            <span className="stat-number">{stats.pending}</span>
-            <span className="stat-label">Pending Review</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon"> <img src={interviewBlueLogo} alt="interview" className="interview-blue-icon" /></span>
-            <span className="stat-number">{stats.shortlisted}</span>
-            <span className="stat-label">For Interview</span>
-          </div>
-          <div className="stat-card">
-            <span className="stat-icon"> <img src={handshakeBlueLogo} alt="handshake" className="handshake-blue-icon" /></span>
-            <span className="stat-number">{stats.hired}</span>
-            <span className="stat-label">Hired</span>
-          </div>
-        </div>
+       <div className="stats-cards">
+  <div className="stat-card">
+    <span className="stat-icon" style={{ 
+      display: 'inline-flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '48px',
+      height: '48px',
+      borderRadius: '12px',
+      background: '#eef2ff',
+      marginBottom: '12px'
+    }}>
+      <img 
+        src={applicantDocumentLogo} 
+        alt="document" 
+        style={{ 
+          width: 24, 
+          height: 24,
+        }} 
+      />
+    </span>
+    <span className="stat-number">{stats.total}</span>
+    <span className="stat-label">Total Applications</span>
+  </div>
+  
+  <div className="stat-card">
+    <span className="stat-icon" style={{ 
+      display: 'inline-flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '48px',
+      height: '48px',
+      borderRadius: '12px',
+      background: '#fffbeb',
+      marginBottom: '12px'
+    }}>
+     <ApplicantClockIcon size={24} style={{ color: '#e8740c' }} />
+    </span>
+    <span className="stat-number">{stats.pending}</span>
+    <span className="stat-label">Pending Review</span>
+  </div>
+  
+ <div className="stat-card">
+  <span className="stat-icon" style={{ 
+    display: 'inline-flex', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    width: '48px',
+    height: '48px',
+    borderRadius: '12px',
+    background: '#f0fdfa',  // ← Light teal background
+    marginBottom: '12px'
+  }}>
+    <img 
+      src={interviewBlueLogo} 
+      alt="interview" 
+      style={{ 
+        width: 24, 
+        height: 24,
+        color: '#0D9488',
+        filter: 'brightness(0) saturate(100%) invert(40%) sepia(60%) saturate(800%) hue-rotate(160deg) brightness(95%) contrast(90%)'
+      }} 
+    />
+  </span>
+  <span className="stat-number">{stats.shortlisted}</span>
+  <span className="stat-label">For Interview</span>
+</div>
+  
+  <div className="stat-card">
+    <span className="stat-icon" style={{ 
+      display: 'inline-flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '48px',
+      height: '48px',
+      borderRadius: '12px',
+      background: '#fef2f2',
+      marginBottom: '12px'
+    }}>
+   <HandshakeIcon size={28} />
+    </span>
+    <span className="stat-number">{stats.hired}</span>
+    <span className="stat-label">Hired</span>
+  </div>
+</div>
 
         <div className="dashboard-grid">
           {/* Recent Applications - Full height */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3> <img src={pinPinkLogo} alt="pin" className="pin-pink-icon" /> Recent Applications</h3>
+              <h3> <img src={applicantresumeLogo} alt="pin" className="pin-pink-icon" /> Recent Applications</h3>
               <span className="view-all" onClick={() => navigate('/applicant/applications')}>
                 View All →
               </span>
@@ -582,7 +649,7 @@ export default function DashboardApplicant() {
                         </span>
                       </div>
                       <div className="app-item-details">
-                        <span><img src={calendarLogo} alt="Calendar" className="calendarsmall-icon" /> {formatDate(app.applied_date)}</span>
+                        <span><img src={calendarminimalLogo} alt="Calendar" className="calendarsmall-icon" /> {formatDate(app.applied_date)}</span>
                         {score > 0 && (
                           <span 
                             className="app-item-score"

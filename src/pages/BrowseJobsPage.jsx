@@ -4,8 +4,9 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import { getJobPostings } from "../services/jobService";
 import '../styles/BrowseJobsPage.css';
-import { CalendarColoredIcon } from "../components/icons/CustomIcons";
+import { CalendarColoredIcon, ApplicantCheckboxIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png'
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import Loader from '../components/Loader';
 ;
 // =========================
@@ -682,7 +683,7 @@ export default function BrowseJobsPage() {
                 navigate('/applicant/applications');
               }}
             >
-              📋 View My Applications
+               View My Applications
             </button>
           </div>
         </div>
@@ -783,7 +784,7 @@ export default function BrowseJobsPage() {
                   <span className="job-detail-item">Item No: {job.item_no}</span>
                 </div>
                 <div className="job-deadline">
-                  <img src={calendarLogo} alt="calendar" className="calendar-blue-icon" /> Closing Date: {job.closing_date}
+                  <img src={calendarminimalLogo} alt="calendar" className="calendar-blue-icon" /> Closing Date: {job.closing_date}
                 </div>
                 <div className="button-group">
                   <button 
@@ -793,7 +794,7 @@ export default function BrowseJobsPage() {
                     View Details
                   </button>
                   {appliedJobs[job.id] && (
-                    <span className="applied-badge-btn">✅ Applied</span>
+                    <span className="applied-badge-btn"><ApplicantCheckboxIcon size={18} /> Applied</span>
                   )}
                 </div>
               </div>
@@ -875,13 +876,13 @@ export default function BrowseJobsPage() {
                     <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                       <button 
                         className="view-applications-btn"
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, justifyContent: 'center' }}
                         onClick={() => {
                           setShowJobDetailsModal(false);
                           navigate('/applicant/applications');
                         }}
                       >
-                        📋 View My Applications
+                         View My Applications
                       </button>
                       <button 
                         className="cancel-btn"

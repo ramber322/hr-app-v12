@@ -41,15 +41,18 @@ height: 34px;
 }
 
 .pin-pink-icon {
-width: 18px;
-height: 18px;
-filter: brightness(0) saturate(100%) invert(47%) sepia(63%) saturate(1204%) hue-rotate(190deg) brightness(98%) contrast(92%);
+width: 24px;
+height: 24px;
+margin-top: 2px;
+  filter: brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%);
+
 }
 
 .mail-black-icon {
 width: 26px;
 height: 26px;
 margin-top: 2px;
+ filter: brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%);
 
 
 }
@@ -75,7 +78,7 @@ margin-left: -3px;
 .calendarsmall-icon{
 width: 20px;
 height: 20px;
-
+filter: brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%);
 }
 
 .app-item-details {
