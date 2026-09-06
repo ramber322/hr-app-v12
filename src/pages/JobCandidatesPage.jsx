@@ -11,6 +11,7 @@ import JobCandidateButton from "../components/JobCandidateButton";
 import communityLogo from '../assets/community3-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import compareplumpLogo from '../assets/compare-plump-icon.png';
+import Loader from '../components/Loader';
 
 export default function JobCandidatesPage() {
   const { jobId } = useParams();
@@ -1073,7 +1074,17 @@ export default function JobCandidatesPage() {
         </div>
 
         {loading ? (
-          <div className="loading-state">Loading candidates...</div>
+          <div className="loading-state" style={{ 
+    display: 'flex', 
+    flexDirection: 'column', 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    padding: '10px 0',
+    minHeight: '250px'
+  }}>
+    <p style={{ marginBottom: '16px', color: '#6c757d', fontSize: '14px' }}>Loading candidates...</p>
+    <Loader />
+  </div>
         ) : (
           <>
             <div className="stats-cards">

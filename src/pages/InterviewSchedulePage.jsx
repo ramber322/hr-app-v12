@@ -11,7 +11,7 @@ import calendarplumpLogo from '../assets/calendar-plump-icon.png';
 import locationplumpLogo from '../assets/location-plump-icon.png';
 import noteplumpLogo from '../assets/note-plump-icon.png';
 import phoneLogo from '../assets/phone-icon.png';
-
+import Loader from "../components/Loader";
 import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon,
 CircleIcon, CheckInterviewIcon, UserBookIcon, CalendarRefreshIcon,CheckSquareIcon,
 CheckMarkSquareInterviewIcon
@@ -942,10 +942,13 @@ const handleAction = (interview, action) => {
           </div>
         </div>
         {/* Table */}
-        {loading ? (
-          <div className="loading-state">Loading interviews...</div>
-        ) : (
+      {loading ? (
+   <div className="loading-state">
+    <p>Loading interviews...</p>
+</div>
+) : (
           <div className="table-container">
+            
             {filteredAndSortedInterviews.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%' }}>

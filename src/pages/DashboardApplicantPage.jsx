@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
-import { TimeSandIcon, ApplicantClockIcon, HandshakeIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
+import { TimeSandIcon, ApplicantClockIcon, ApplicantNotesIcon, HandshakeIcon, ApplicantClipboardIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
 import '/src/styles/DashboardApplicantPage.css';
@@ -422,69 +422,80 @@ export default function DashboardApplicant() {
       height: 20px;
     }
 
-    /* ===== WEATHER & NOTIFICATIONS COMBINED CARD ===== */
-    .weather-notification-card {
-      display: flex;
-      flex-direction: column;
-    }
+  /* ===== WEATHER & NOTIFICATIONS COMBINED CARD ===== */
+.weather-notification-card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;  /* ← ADD THIS - creates space between them */
+}
 
-    .weather-notification-card .weather-card {
-      border-radius: 12px 12px 0 0;
-      margin-bottom: 0;
-    }
+/* Weather Widget - Full rounded corners */
+.weather-notification-card .weather-card {
+  border-radius: 12px !important;
+  margin-bottom: 0;
+  box-shadow: none !important;
+}
 
-    .card-divider {
-      height: 1px;
-      background: #e9ecef;
-      margin: 0 20px;
-    }
+/* Notifications card - Separate with its own border radius */
+.weather-notification-card .notifications-card {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+}
 
-    .weather-notification-card .card-header {
-      padding-top: 12px;
-      padding-bottom: 12px;
-    }
+/* Remove the divider */
+.weather-notification-card .card-divider {
+  display: none;
+}
 
-    .weather-notification-card .card-body {
-      flex: 1;
-    }
+/* Notifications header */
+.weather-notification-card .card-header {
+  padding-top: 16px;
+  padding-bottom: 12px;
+}
 
-    /* Make weather card fit nicely */
-    .weather-notification-card .weather-card {
-      height: 180px;
-      padding: 16px;
-    }
+/* Notifications body */
+.weather-notification-card .card-body {
+  flex: 1;
+}
 
-    .weather-notification-card .weather-temp {
-      font-size: 40px;
-      line-height: 50px;
-      bottom: 10px;
-      left: 16px;
-    }
+/* Make weather card fit nicely */
+.weather-notification-card .weather-card {
+  height: 180px;
+  padding: 16px;
+}
 
-    .weather-notification-card .weather-temp-scale {
-      bottom: 14px;
-      right: 16px;
-      width: 60px;
-      height: 26px;
-    }
+.weather-notification-card .weather-temp {
+  font-size: 40px;
+  line-height: 50px;
+  bottom: 10px;
+  left: 16px;
+}
 
-    .weather-notification-card .weather-temp-scale span {
-      font-size: 11px;
-    }
+.weather-notification-card .weather-temp-scale {
+  bottom: 14px;
+  right: 16px;
+  width: 60px;
+  height: 26px;
+}
 
-    .weather-notification-card .weather-card-header span:first-child {
-      font-size: 13px;
-    }
+.weather-notification-card .weather-temp-scale span {
+  font-size: 11px;
+}
 
-    .weather-notification-card .weather-card-header span:last-child {
-      font-size: 12px;
-    }
+.weather-notification-card .weather-card-header span:first-child {
+  font-size: 13px;
+}
 
-    .weather-notification-card .weather-container {
-      transform: scale(0.6);
-      right: -50px;
-      top: -60px;
-    }
+.weather-notification-card .weather-card-header span:last-child {
+  font-size: 12px;
+}
+
+.weather-notification-card .weather-container {
+  transform: scale(0.6);
+  right: -50px;
+  top: -60px;
+}
 
     @media (max-width: 768px) {
       .dashboard-container { padding: 16px; padding-top: 80px; }
@@ -526,23 +537,16 @@ export default function DashboardApplicant() {
        <div className="stats-cards">
   <div className="stat-card">
     <span className="stat-icon" style={{ 
-      display: 'inline-flex', 
-      alignItems: 'center', 
-      justifyContent: 'center',
-      width: '48px',
-      height: '48px',
-      borderRadius: '12px',
-      background: '#eef2ff',
-      marginBottom: '12px'
-    }}>
-      <img 
-        src={applicantDocumentLogo} 
-        alt="document" 
-        style={{ 
-          width: 24, 
-          height: 24,
-        }} 
-      />
+  display: 'inline-flex', 
+  alignItems: 'center', 
+  justifyContent: 'center',
+  width: '48px',
+  height: '48px',
+  borderRadius: '12px',
+  background: '#eef2ff',  // ← Light indigo background
+  marginBottom: '12px'
+}}>
+    <ApplicantClipboardIcon size={24}  />
     </span>
     <span className="stat-number">{stats.total}</span>
     <span className="stat-label">Total Applications</span>
@@ -580,8 +584,8 @@ export default function DashboardApplicant() {
       src={interviewBlueLogo} 
       alt="interview" 
       style={{ 
-        width: 24, 
-        height: 24,
+        width: 28, 
+        height: 28,
         color: '#0D9488',
         filter: 'brightness(0) saturate(100%) invert(40%) sepia(60%) saturate(800%) hue-rotate(160deg) brightness(95%) contrast(90%)'
       }} 
@@ -613,7 +617,7 @@ export default function DashboardApplicant() {
           {/* Recent Applications - Full height */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3> <img src={applicantresumeLogo} alt="pin" className="pin-pink-icon" /> Recent Applications</h3>
+              <h3> <ApplicantNotesIcon size={24} style={{ color: '#1e293b' }} /> Recent Applications</h3>
               <span className="view-all" onClick={() => navigate('/applicant/applications')}>
                 View All →
               </span>
@@ -666,39 +670,38 @@ export default function DashboardApplicant() {
             </div>
           </div>
 
-         {/* Combined Card: Notifications + Weather */}
+ {/* Combined Card: Weather + Notifications */}
 <div className="dashboard-card weather-notification-card">
-  {/* Notifications - ON TOP */}
-  <div className="card-header">
-    <h3><img src={mailBlackLogo} alt="mail" className="mail-black-icon" /> Recent Notifications</h3>
-    <span className="view-all" onClick={() => navigate('/applicant/applications')}>
-      View All →
-    </span>
-  </div>
-  <div className="card-body notifications-body">
-    {recentNotifications.length === 0 ? (
-      <div className="empty-state">
-        <span className="icon">🔕</span>
-        No notifications yet
-      </div>
-    ) : (
-      recentNotifications.map((notification) => (
-        <div 
-          key={notification.id} 
-          className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
-        >
-          <div className="notification-message">{notification.message}</div>
-          <div className="notification-time">{formatTime(notification.created_at)}</div>
-        </div>
-      ))
-    )}
-  </div>
-  
-  {/* Divider */}
-  <div className="card-divider"></div>
-  
-  {/* Weather Widget - BELOW */}
+  {/* Weather Widget - Full rounded corners */}
   <WeatherWidget />
+  
+  {/* Notifications - Separate card with its own border radius */}
+  <div className="notifications-card">
+    <div className="card-header">
+      <h3><img src={mailBlackLogo} alt="mail" className="mail-black-icon" /> Recent Notifications</h3>
+      <span className="view-all" onClick={() => navigate('/applicant/applications')}>
+        View All →
+      </span>
+    </div>
+    <div className="card-body notifications-body">
+      {recentNotifications.length === 0 ? (
+        <div className="empty-state">
+          <span className="icon">🔕</span>
+          No notifications yet
+        </div>
+      ) : (
+        recentNotifications.map((notification) => (
+          <div 
+            key={notification.id} 
+            className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
+          >
+            <div className="notification-message">{notification.message}</div>
+            <div className="notification-time">{formatTime(notification.created_at)}</div>
+          </div>
+        ))
+      )}
+    </div>
+  </div>
 </div>
         </div>
       </div>
