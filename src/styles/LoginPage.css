@@ -17,7 +17,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #1a3a5c 0%, #008dd5 100%);
+background-image: linear-gradient( 135deg, #ABDCFF 10%, #0396FF 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   padding: 20px;
   position: relative;
@@ -101,7 +101,7 @@ html, body {
 
 /* ===== LANDING SECTION - 70% ===== */
 .landing-section {
-  background: radial-gradient(circle at 70% 30%, #ace9ff 0%, #c0e5f8 50%, #a8c8d8 100%);
+  background-image: linear-gradient( 135deg, #ABDCFF 10%, #ABDCFF 100%);
   padding: 35px 40px;
   display: flex;
   align-items: center;
@@ -406,24 +406,25 @@ html, body {
 
 .login-button {
   padding: 10px 32px;
-  background: linear-gradient(135deg, #1a3a5c 0%, #2a5f7a 100%);
+  background: #4f46e5;
   color: white;
   border: none;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: 100px;
+  min-width: 110px;
 }
 
 .login-button:hover:not(:disabled) {
+  background: #4338ca;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(26, 58, 92, 0.3);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
 }
 
 .login-button:disabled {

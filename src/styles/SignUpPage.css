@@ -18,7 +18,7 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #0f2847 0%, #1a3a5c 50%, #2a5f7a 100%);
+background-image: linear-gradient( 135deg, #ABDCFF 10%, #0396FF 100%);
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   padding: 30px 16px;
   position: relative;
@@ -47,7 +47,8 @@ html, body {
   height: 500px;
   top: -200px;
   right: -150px;
-  background: radial-gradient(circle, #667eea, transparent);
+   background: radial-gradient(circle, #4f46e5, transparent);
+  opacity: 0.06;
   animation: floatShape 25s ease-in-out infinite;
 }
 
@@ -56,7 +57,8 @@ html, body {
   height: 350px;
   bottom: -100px;
   left: -100px;
-  background: radial-gradient(circle, #764ba2, transparent);
+ background: radial-gradient(circle, #3b82f6, transparent);
+  opacity: 0.06;
   animation: floatShape 20s ease-in-out infinite reverse;
 }
 
@@ -65,7 +67,8 @@ html, body {
   height: 200px;
   top: 40%;
   left: 60%;
-  background: radial-gradient(circle, #f093fb, transparent);
+  background: radial-gradient(circle, #60a5fa, transparent);
+  opacity: 0.05;
   animation: floatShape 18s ease-in-out infinite 2s;
 }
 
@@ -74,7 +77,8 @@ html, body {
   height: 150px;
   top: 20%;
   left: 10%;
-  background: radial-gradient(circle, #4facfe, transparent);
+  background: radial-gradient(circle, #818cf8, transparent);
+  opacity: 0.04;
   animation: floatShape 22s ease-in-out infinite 4s;
 }
 
@@ -83,7 +87,8 @@ html, body {
   height: 100px;
   bottom: 30%;
   right: 20%;
-  background: radial-gradient(circle, #43e97b, transparent);
+  background: radial-gradient(circle, #93c5fd, transparent);
+  opacity: 0.04;
   animation: floatShape 15s ease-in-out infinite 1s;
 }
 
@@ -107,13 +112,13 @@ html, body {
 /* ===== CARD ===== */
 .signup-card {
   width: 100%;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.92);
   backdrop-filter: blur(20px);
   border-radius: 24px;
   padding: 48px 40px;
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
   animation: fadeInUp 0.6s ease-out;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 @keyframes fadeInUp {
@@ -187,9 +192,9 @@ html, body {
 .input-group input:focus,
 .role-select:focus {
   outline: none;
-  border-color: #2a7a9a;
+    border-color: #4f46e5;  /* ← Indigo focus */
   background: white;
-  box-shadow: 0 0 0 4px rgba(42, 122, 154, 0.08);
+   box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.08);
 }
 
 .input-group input:disabled,
@@ -219,14 +224,14 @@ html, body {
 .signup-button {
   width: 100%;
   padding: 13px;
-  background: linear-gradient(135deg, #1a3a5c 0%, #2a5f7a 100%);
+  background: #4f46e5;  /* ← Solid Indigo */
   color: white;
   border: none;
   border-radius: 10px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -235,8 +240,8 @@ html, body {
 }
 
 .signup-button:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(26, 58, 92, 0.35);
+   background: #4338ca;  /* ← Darker Indigo on hover */
+  box-shadow: 0 8px 25px rgba(169, 175, 180, 0.35);
 }
 
 .signup-button:disabled {
@@ -284,12 +289,13 @@ html, body {
 }
 
 .signup-footer a {
-  color: #2a7a9a;
+  color: #4f46e5;  /* ← Indigo link */
   font-weight: 600;
   text-decoration: none;
 }
 
 .signup-footer a:hover {
+   color: #4338ca;
   text-decoration: underline;
 }
 

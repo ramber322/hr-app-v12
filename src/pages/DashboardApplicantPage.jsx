@@ -3,19 +3,11 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import { TimeSandIcon, ApplicantClockIcon, ApplicantNotesIcon, HandshakeIcon, ApplicantClipboardIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
-import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
 import '/src/styles/DashboardApplicantPage.css';
-import pinPinkLogo from '../assets/pin-pink-icon.png';
 import mailBlackLogo from '../assets/mail-blue-icon.png';
-import documentBlueLogo from '../assets/document-blue-icon.png';
-import clockBlueLogo from '../assets/clock-blue-icon.png';
-import handshakeBlueLogo from '../assets/handshake-blue-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import interviewBlueLogo from '../assets/interview-blue-icon.png';
-import applicantDocumentLogo from '../assets/applicant-document-icon.png';
-import applicantresumeLogo from '../assets/applicant-resume-icon.png';
-import applicantrecentapplicationLogo from '../assets/applicant-recentapplication-icon.png';
 
 
 import WeatherWidget from "../components/WeatherWidget";

@@ -204,27 +204,34 @@ export default function MyApplicationsPage() {
     return years === 1 ? `${years} year` : `${years} years`;
   };
 
-  // ===== NEW: Format education recommendation =====
-  const formatEducationRecommendation = (rec) => {
-    // Check if it's an education recommendation
-    if (rec.includes('education level')) {
-      const match = rec.match(/level (\d+).*level (\d+)/);
-      if (match) {
-        const current = parseInt(match[1]);
-        const required = parseInt(match[2]);
-        const currentLabel = EDUCATION_LABELS[current] || `Level ${current}`;
-        const requiredLabel = EDUCATION_LABELS[required] || `Level ${required}`;
-        return `Need ${requiredLabel} (currently ${currentLabel})`;
+  // ===== NEW: Format education recommendation with assementlike =====
+ const formatEducationRecommendation = (rec) => {
+  // Education recommendation
+  if (rec.includes('education level')) {
+    const match = rec.match(/level (\d+).*level (\d+)/);
+    if (match) {
+      const current = parseInt(match[1]);
+      const required = parseInt(match[2]);
+      const currentLabel = EDUCATION_LABELS[current] || `Level ${current}`;
+      const requiredLabel = EDUCATION_LABELS[required] || `Level ${required}`;
+      
+      if (current < required) {
+        return `You have a ${currentLabel}. This position requires ${requiredLabel}.`;
+      } else {
+        return `You meet the required ${requiredLabel} qualification.`;
       }
     }
+  }
     
-    // Training hours recommendation
-    if (rec.includes('more hours')) {
-      const match = rec.match(/(\d+) more hours/);
-      if (match) {
-        return `Complete ${match[1]} more hours of relevant training`;
-      }
+  // Training hours recommendation
+  if (rec.includes('training') || rec.includes('hours')) {
+    const match = rec.match(/(\d+)\s*(?:more)?\s*hours?/i);
+    if (match) {
+      const hours = parseInt(match[1]);
+      return `You need to complete ${hours} more hour${hours > 1 ? 's' : ''} of relevant training.`;
     }
+    return rec;
+  }
     
     // Return as is if no match
     return rec;

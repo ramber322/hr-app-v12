@@ -3,11 +3,11 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import '/src/styles/LoginPage.css';
+import { LoginBarGraphIcon, MapNavigationIcon, OpenFolderIcon, LampElectricIcon, BankBuildingIcon } from "../components/icons/CustomIcons";
 
 // Import images from assets folder
 import lguLogo from '../assets/lgu-official-seal.png';
 import chrmoLogo from '../assets/chrmo-official-seal.png';
-
 function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
@@ -95,39 +95,89 @@ function LoginPage() {
               </p>
             </div>
 
-            <div className="features-grid">
-              <div className="feature-item">
-                <div className="feature-icon">📂</div>
-                <div>
-                  <h4>Data Management</h4>
-                  <p>Centralized storage and organization of applicant records</p>
-                </div>
-              </div>
-              <div className="feature-item">
-                <div className="feature-icon">⚡</div>
-                <div>
-                  <h4>Smart Evaluation</h4>
-                  <p>AI-assisted applicant evaluation and ranking</p>
-                </div>
-              </div>
-              <div className="feature-item">
-                <div className="feature-icon">📊</div>
-                <div>
-                  <h4>Reports & Analytics</h4>
-                  <p>HR data insights and compliance reports</p>
-                </div>
-              </div>
-              <div className="feature-item">
-                <div className="feature-icon">🏛️</div>
-                <div>
-                  <h4>CSC Compliance</h4>
-                  <p>Automated reporting and document management</p>
-                </div>
-              </div>
-            </div>
+          <div className="features-grid">
+  <div className="feature-item">
+    <div className="feature-icon" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '36px',
+      height: '36px',
+      flexShrink: 0,
+      background: '#eef2ff',
+      borderRadius: '8px',
+      fontSize: '18px'
+    }}>
+      <OpenFolderIcon size={20} />
+    </div>
+    <div>
+      <h4>Data Management</h4>
+      <p>Centralized storage and organization of applicant records</p>
+    </div>
+  </div>
+  
+  <div className="feature-item">
+    <div className="feature-icon" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '36px',
+      height: '36px',
+      flexShrink: 0,
+      background: '#eef2ff',
+      borderRadius: '8px',
+      fontSize: '18px'
+    }}>
+      <LampElectricIcon size={25} style={{ color: '#4f46e5' }} />
+    </div>
+    <div>
+      <h4>Smart Evaluation</h4>
+      <p>AI-assisted applicant evaluation and ranking</p>
+    </div>
+  </div>
+  
+  <div className="feature-item">
+    <div className="feature-icon" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '36px',
+      height: '36px',
+      flexShrink: 0,
+      background: '#eef2ff',
+      borderRadius: '8px'
+    }}>
+      <LoginBarGraphIcon size={18} style={{ color: '#4f46e5' }} />
+    </div>
+    <div>
+      <h4>Reports & Analytics</h4>
+      <p>HR data insights and compliance reports</p>
+    </div>
+  </div>
+  
+  <div className="feature-item">
+    <div className="feature-icon" style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center',
+      width: '36px',
+      height: '36px',
+      flexShrink: 0,
+      background: '#eef2ff',
+      borderRadius: '8px',
+      fontSize: '18px'
+    }}>
+     <BankBuildingIcon size={22} style={{ color: '#1a3a5c' }} />
+    </div>
+    <div>
+      <h4>CSC Compliance</h4>
+      <p>Automated reporting and document management</p>
+    </div>
+  </div>
+</div>
 
             <div className="lgu-footer">
-              <p className="footer-address">📍 Buhanginan Hills, Pala-o, Iligan City, Philippines</p>
+              <p className="footer-address" style={{ gap: '10px' }}><MapNavigationIcon size={10}  />Buhanginan Hills, Pala-o, Iligan City, Philippines</p>
               <p>© 2024 City Government of Iligan - HRMD</p>
             </div>
           </div>
@@ -147,7 +197,7 @@ function LoginPage() {
                 <label>Email Address</label>
                 <input
                   type="email"
-                  placeholder="john.doe@gmail.com"
+                  placeholder="johndoe@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={isLoading}
@@ -166,7 +216,7 @@ function LoginPage() {
               </div>
 
               <div className="register-row">
-                <span>Don't have an account? <Link to="/signup">Register here</Link></span>
+                <span>Don't have an account? <Link to="/signup">Create one</Link></span>
               </div>
 
               <div className="login-row">

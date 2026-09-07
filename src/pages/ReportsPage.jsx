@@ -357,7 +357,15 @@ const statusChartData = {
   datasets: [
     {
       data: statusCounts.length > 0 ? statusCounts : [1],
-      backgroundColor: ['#1a3a5c', '#3b82f6', '#60a5fa', '#0d9488'],
+     backgroundColor: [
+  '#f59e0b',  // Pending - Amber
+  '#3b82f6',  // Reviewing - Blue
+  '#0d9488',  // Shortlisted - Teal
+  '#dc2626',  // Qualified - Green
+  '#8b5cf6',  // Interview - Purple
+  '#1a3a5c',  // Hired - Navy
+  '#dc2626',  // Rejected - Red
+],
       borderWidth: 0,
     },
   ],

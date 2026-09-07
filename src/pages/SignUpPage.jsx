@@ -137,7 +137,7 @@ function SignUpPage() {
               <label>Email Address </label>
               <input
                 type="email"
-                placeholder="johndoe@gmail.com"
+                placeholder="johan@gmail.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
@@ -187,8 +187,8 @@ function SignUpPage() {
                 disabled={isLoading}
                 className="role-select"
               >
-                <option value="applicant">📋 Job Applicant</option>
-                <option value="hr">🏢 HR Personnel</option>
+                <option value="applicant"> Job Applicant</option>
+                <option value="hr"> HR Personnel</option>
               </select>
             </div>
 
