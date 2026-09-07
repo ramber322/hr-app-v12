@@ -177,7 +177,7 @@ function LoginPage() {
 </div>
 
             <div className="lgu-footer">
-              <p className="footer-address" style={{ gap: '10px' }}><MapNavigationIcon size={10}  />Buhanginan Hills, Pala-o, Iligan City, Philippines</p>
+               <p className="footer-address" style={{ display: 'flex', alignItems: 'center', margin: 0 }}><MapNavigationIcon size={10} style={{ verticalAlign: 'middle'}} />Buhanginan Hills, Pala-o, Iligan City, Philippines</p>
               <p>© 2024 City Government of Iligan - HRMD</p>
             </div>
           </div>
