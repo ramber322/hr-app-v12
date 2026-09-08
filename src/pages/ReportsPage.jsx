@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import "../styles/ReportsPage.css";
  import Loader from '../components/Loader';
 
-import { ReportsChartIcon, EnterpriseIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
+import { ReportsChartIcon, ReportsIcon, EnterpriseIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
 
 // Chart.js imports
 import {
@@ -594,6 +594,7 @@ h3 svg {
         <div className="reports-container">
           <style>{styles}</style>
           <Loader/>
+          
           <div className="loading-state">Loading reports...</div>
         </div>
       </>
@@ -608,7 +609,7 @@ h3 svg {
 
         <div className="page-header" >
          <h1 className="icon-title">
-  <ReportsChartIcon size={28} />
+  <ReportsIcon size={28} />
   Reports
 </h1>
           <p>Generate and export recruitment reports</p>
