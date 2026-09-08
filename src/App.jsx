@@ -8,7 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import SendSmsTest from './pages/SendSmsTest';
 import EmailTest from './pages/EmailTest';
-
+import ModalPreview from './pages/ModalPreview';
 // HR Pages
 import DashboardPage from "./pages/DashboardPage";
 import JobPostingPage from "./pages/JobPostingPage";
@@ -102,13 +102,21 @@ function App() {
             </PublicRoute> }
   />
 
-{/* ==================== SMS TEST ROUTE ==================== */}
+{/* ==================== EMAIL TEST ROUTE ==================== */}
   <Route 
     path="/test-email" 
      element = { <PublicRoute>
               <EmailTest />
             </PublicRoute> }
-  />        
+  />      
+
+{/* ==================== MODAL TEST ROUTE ==================== */}
+  <Route 
+    path="/test-modal" 
+     element = { <PublicRoute>
+              <ModalPreview  />
+            </PublicRoute> }
+  />      
         <Route 
           path="/signup" 
           element={

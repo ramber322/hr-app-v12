@@ -87,6 +87,7 @@ function SignUpPage() {
   };
 
   return (
+     <div className="signup-page">  
     <div className="signup-wrapper">
       {/* Background Shapes */}
       <div className="shapes">
@@ -133,16 +134,29 @@ function SignUpPage() {
 
            
 
-            <div className="input-group">
-              <label>Email Address </label>
-              <input
-                type="email"
-                placeholder="johan@gmail.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
+           <div className="form-row contact-row">
+  <div className="input-group half">
+    <label>Email Address</label>
+    <input
+      type="email"
+      placeholder="johan@gmail.com"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      disabled={isLoading}
+    />
+  </div>
+
+  <div className="input-group half">
+    <label>Phone Number</label>
+    <input
+      type="tel"
+      placeholder="0912 345 6789"
+      value={phoneNumber}
+      onChange={(e) => setPhoneNumber(e.target.value)}
+      disabled={isLoading}
+    />
+  </div>
+</div>
 
             <div className="form-row password-row">
               <div className="input-group half">
@@ -168,19 +182,10 @@ function SignUpPage() {
               </div>
             </div>
 
-             <div className="input-group">
-              <label>Phone Number</label>
-              <input
-                type="tel"
-                placeholder="0912 345 6789"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                disabled={isLoading}
-              />
-            </div>
+             
 
             <div className="input-group">
-              <label>I am signing up as</label>
+              <label>Signing up as</label>
               <select
                 value={role}
                 onChange={(e) => setRole(e.target.value)}
@@ -212,6 +217,7 @@ function SignUpPage() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

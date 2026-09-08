@@ -410,7 +410,7 @@ export default function ActivityLogPage() {
          <h1 style={{ display: "flex", alignItems: "center", gap: "8px" }}>
 <img 
   src={activitylogLogo} 
-  alt="Activity Log" 
+  alt="log" 
   style={{ 
     width: 38, 
     height: 38,

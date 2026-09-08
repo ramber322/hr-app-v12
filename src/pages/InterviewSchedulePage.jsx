@@ -28,6 +28,10 @@ import {
 } from "../services/interviewService";
 
 export default function InterviewSchedulePage() {
+const [bulkSuccessMessage, setBulkSuccessMessage] = useState(null);
+const [scheduleSuccessMessage, setScheduleSuccessMessage] = useState(null);
+const [rescheduleSuccessMessage, setRescheduleSuccessMessage] = useState(null);
+
   const { jobId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,6 +46,16 @@ export default function InterviewSchedulePage() {
   const [selectedApplicants, setSelectedApplicants] = useState([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   
+
+  // Add these states at the top with your other states
+const [showSuccessModal, setShowSuccessModal] = useState(false);
+const [successData, setSuccessData] = useState({
+  total: 0,
+  emailsSent: 0,
+  emailsFailed: 0,
+  message: ''
+});
+
   // Schedule form state
   const [scheduleForm, setScheduleForm] = useState({
     date: "",
@@ -90,7 +104,6 @@ const handleBulkReschedule = async () => {
   try {
     const selectedData = interviews.filter(i => selectedApplicants.includes(i.id));
     
-    // Generate time slots
     const startTime = new Date(`${bulkRescheduleForm.date}T${bulkRescheduleForm.time}`);
     const duration = bulkRescheduleForm.duration;
     
@@ -103,7 +116,6 @@ const handleBulkReschedule = async () => {
       const applicantName = getApplicantName(interview);
       const applicantEmail = getApplicantEmail(interview);
       
-      // 1. Reschedule in database
       const result = await rescheduleInterview(
         interview.id,
         slotTime.toISOString().split('T')[0],
@@ -117,7 +129,6 @@ const handleBulkReschedule = async () => {
         continue;
       }
 
-      // 2. Send email notification
       if (applicantEmail && applicantEmail !== 'No email') {
         const emailResult = await sendRescheduleEmail({
           to: applicantEmail,
@@ -143,7 +154,6 @@ const handleBulkReschedule = async () => {
       }
     }
 
-    // Refresh data
     await loadData();
     setSelectedApplicants([]);
     setShowBulkRescheduleModal(false);
@@ -160,14 +170,16 @@ const handleBulkReschedule = async () => {
     const emailsSent = emailResults.filter(r => r.sent).length;
     const emailsFailed = emailResults.filter(r => !r.sent).length;
 
-    let message = `✅ ${totalRescheduled} interview(s) rescheduled successfully!`;
+    // Show success notification instead of alert
+    let message = `${totalRescheduled} interview(s) rescheduled successfully!`;
     if (emailsSent > 0) {
-      message += `\n📧 ${emailsSent} email(s) sent.`;
+      message += ` 📧 ${emailsSent} sent`;
     }
     if (emailsFailed > 0) {
-      message += `\n⚠️ ${emailsFailed} email(s) failed to send.`;
+      message += ` ⚠️ ${emailsFailed} failed`;
     }
-    alert(message);
+    setBulkSuccessMessage(message);
+    setTimeout(() => setBulkSuccessMessage(null), 5000);
 
   } catch (error) {
     console.error('Error bulk rescheduling:', error);
@@ -404,7 +416,6 @@ const handleBulkReschedule = async () => {
     setShowScheduleModal(true);
   };
 
-  // Handle batch scheduling
  // Handle batch scheduling with email notifications
 const handleBatchSchedule = async () => {
   if (!scheduleForm.date || !scheduleForm.time) {
@@ -447,7 +458,7 @@ const handleBatchSchedule = async () => {
       return;
     }
 
-    // ---- NEW: Send emails to all scheduled applicants ----
+    // Send emails to all scheduled applicants
     const emailResults = [];
     for (let i = 0; i < selectedData.length; i++) {
       const interview = selectedData[i];
@@ -499,19 +510,20 @@ const handleBatchSchedule = async () => {
       description: "",
     });
     
-    // Show success message with email status
     const totalScheduled = selectedData.length;
     const emailsSent = emailResults.filter(r => r.sent).length;
     const emailsFailed = emailResults.filter(r => !r.sent).length;
-    
-    let message = `✅ ${totalScheduled} interview(s) scheduled successfully!`;
+
+    // Show success notification instead of alert
+    let message = `${totalScheduled} interview(s) scheduled successfully!`;
     if (emailsSent > 0) {
-      message += `\n📧 ${emailsSent} email(s) sent.`;
+      message += ` 📧 ${emailsSent} sent`;
     }
     if (emailsFailed > 0) {
-      message += `\n⚠️ ${emailsFailed} email(s) failed to send.`;
+      message += ` ⚠️ ${emailsFailed} failed`;
     }
-    alert(message);
+    setScheduleSuccessMessage(message);
+    setTimeout(() => setScheduleSuccessMessage(null), 5000);
     
   } catch (error) {
     console.error('Error scheduling:', error);
@@ -558,6 +570,7 @@ const handleReschedule = async () => {
   const applicantName = getApplicantName(rescheduleData);
   const applicantEmail = getApplicantEmail(rescheduleData);
   const jobTitle = job?.position_title || 'Interview';
+  let emailSent = false;
 
   try {
     const result = await rescheduleInterview(
@@ -574,7 +587,7 @@ const handleReschedule = async () => {
       return;
     }
 
-    // Send email notification about reschedule - USING NEW FUNCTION
+    // Send email notification about reschedule
     if (applicantEmail && applicantEmail !== 'No email') {
       const emailResult = await sendRescheduleEmail({
         to: applicantEmail,
@@ -588,6 +601,7 @@ const handleReschedule = async () => {
       });
 
       if (emailResult.success) {
+        emailSent = true;
         console.log('📧 Reschedule email sent to:', applicantEmail);
       } else {
         console.error('❌ Failed to send reschedule email:', emailResult.error);
@@ -606,7 +620,16 @@ const handleReschedule = async () => {
       reason: "",
     });
     
-    alert(`✅ Interview successfully rescheduled!${applicantEmail && applicantEmail !== 'No email' ? ' 📧 Email sent.' : ''}`);
+    // Show success notification instead of alert
+    let message = `${applicantName}'s interview rescheduled successfully!`;
+    if (emailSent) {
+      message += ` 📧 Email sent.`;
+    } else if (applicantEmail && applicantEmail !== 'No email') {
+      message += ` ⚠️ Email failed.`;
+    }
+    setRescheduleSuccessMessage(message);
+    setTimeout(() => setRescheduleSuccessMessage(null), 5000);
+    
   } catch (error) {
     console.error('Error rescheduling:', error);
     alert('Error rescheduling interview: ' + error.message);
@@ -937,7 +960,51 @@ const handleAction = (interview, action) => {
   </div>
 )}
 
-
+{/* Success Modal */}
+{showSuccessModal && (
+  <div className="modal-overlay" onClick={() => setShowSuccessModal(false)}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
+      <div className="modal-header" style={{ borderBottom: 'none' }}>
+        <h3 style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          ✅ Success
+        </h3>
+        <button className="close-modal" onClick={() => setShowSuccessModal(false)}>×</button>
+      </div>
+      <div className="modal-body">
+        <p style={{ fontSize: '16px', marginBottom: '12px' }}>
+          {successData.total} interview(s) rescheduled successfully!
+        </p>
+        {successData.emailsSent > 0 && (
+          <p style={{ fontSize: '14px', color: '#6c757d', marginBottom: '4px' }}>
+            📧 {successData.emailsSent} email(s) sent.
+          </p>
+        )}
+        {successData.emailsFailed > 0 && (
+          <p style={{ fontSize: '14px', color: '#dc2626', marginBottom: '4px' }}>
+            ⚠️ {successData.emailsFailed} email(s) failed to send.
+          </p>
+        )}
+        <div className="modal-actions" style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button 
+            className="btn-primary"
+            onClick={() => setShowSuccessModal(false)}
+            style={{
+              padding: '8px 20px',
+              background: '#4f46e5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
           </div>
         </div>
@@ -1427,6 +1494,76 @@ const handleAction = (interview, action) => {
           </div>
         </div>
       )}
+
+
+{/* Bulk Reschedule Success Notification */}
+{bulkSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#10b981',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} />
+    <span>{bulkSuccessMessage}</span>
+  </div>
+)}
+
+
+
+{/* Schedule Success Notification */}
+{scheduleSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#10b981',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} />
+    <span>{scheduleSuccessMessage}</span>
+  </div>
+)}
+
+
+{/* Reschedule Success Notification */}
+{rescheduleSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#10b981',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} />
+    <span>{rescheduleSuccessMessage}</span>
+  </div>
+)}
 
       {/* Profile Modal */}
       {showProfileModal && selectedApplicant && (

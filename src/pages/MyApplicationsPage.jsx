@@ -6,6 +6,7 @@ import "../styles/MyApplicationsPage.css";
 import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
+import { ApplicantCheckboxIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
 export default function MyApplicationsPage() {
@@ -15,6 +16,10 @@ export default function MyApplicationsPage() {
   const [selectedApplication, setSelectedApplication] = useState(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
   const [withdrawing, setWithdrawing] = useState(false);
+
+//Alert Withdrawal
+const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+const [selectedWithdrawApp, setSelectedWithdrawApp] = useState(null);
 
   // Education level labels
   const EDUCATION_LABELS = {
@@ -124,50 +129,57 @@ export default function MyApplicationsPage() {
     return withdrawableStatuses.includes(application.status) && closingDate >= today;
   };
 
-  const handleWithdraw = async (application) => {
-    if (!window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
-      return;
-    }
-    
-    setWithdrawing(true);
-    
-    try {
-      const { error: updateError } = await supabase
-        .from('applications')
-        .update({ 
-          status: 'WITHDRAWN',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', application.id);
-      
-      if (updateError) throw updateError;
-      
-      const { data: currentJob } = await supabase
-        .from('job_postings')
-        .select('applicants_count')
-        .eq('id', application.job_id)
-        .single();
+  const [successMessage, setSuccessMessage] = useState(null);
 
-      const newCount = Math.max((currentJob?.applicants_count || 0) - 1, 0);
-
-      const { error: countError } = await supabase
-        .from('job_postings')
-        .update({ applicants_count: newCount })
-        .eq('id', application.job_id);
-      
-      if (countError) throw countError;
-      
-      alert('Application withdrawn successfully.');
-      const { data: { user } } = await supabase.auth.getUser();
-      await loadApplications(user.id);
-      
-    } catch (error) {
-      console.error('Error withdrawing application:', error);
-      alert('Failed to withdraw application. Please try again.');
-    }
+const handleWithdraw = async (application) => {
+  // REMOVE THIS LINE (modal handles confirmation)
+  // if (!window.confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
+  //   return;
+  // }
+  
+  setWithdrawing(true);
+  
+  try {
+    const { error: updateError } = await supabase
+      .from('applications')
+      .update({ 
+        status: 'WITHDRAWN',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', application.id);
     
-    setWithdrawing(false);
-  };
+    if (updateError) throw updateError;
+    
+    const { data: currentJob } = await supabase
+      .from('job_postings')
+      .select('applicants_count')
+      .eq('id', application.job_id)
+      .single();
+
+    const newCount = Math.max((currentJob?.applicants_count || 0) - 1, 0);
+
+    const { error: countError } = await supabase
+      .from('job_postings')
+      .update({ applicants_count: newCount })
+      .eq('id', application.job_id);
+    
+    if (countError) throw countError;
+    
+    // Show success message instead of alert
+    setSuccessMessage('Application withdrawn successfully!');
+    setTimeout(() => setSuccessMessage(null), 3000);
+    
+    const { data: { user } } = await supabase.auth.getUser();
+    await loadApplications(user.id);
+    
+  } catch (error) {
+    console.error('Error withdrawing application:', error);
+    alert('Failed to withdraw application. Please try again.');
+  }
+  
+  setWithdrawing(false);
+};
+
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -486,7 +498,10 @@ export default function MyApplicationsPage() {
                     {canWithdrawApp && (
                       <button 
                         className="withdraw-btn" 
-                        onClick={() => handleWithdraw(app)}
+                        onClick={() => {
+      setSelectedWithdrawApp(app);
+      setShowWithdrawModal(true);
+    }}
                         disabled={withdrawing}
                       >
                         Withdraw
@@ -499,6 +514,125 @@ export default function MyApplicationsPage() {
           )}
         </div>
       </div>
+      
+{/* Withdraw Confirmation Modal */}
+{showWithdrawModal && selectedWithdrawApp && (
+  <div className="modal-overlay" onClick={() => setShowWithdrawModal(false)}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()} style={{ 
+      width: '500px',
+      maxWidth: '90vw'
+    }}>
+      {/* Simple Header with Icon */}
+      <div className="confirm-card-header" style={{ paddingBottom: '8px' }}>
+        <span className="confirm-icon" style={{ fontSize: '28px' }}>⚠️</span>
+        <h3 style={{ fontSize: '20px', margin: '4px 0 0 0' }}>Withdraw Application</h3>
+      </div>
+      
+      {/* Message */}
+      <div className="confirm-card-body" style={{ padding: '8px 24px 16px 24px' }}>
+        <p style={{ marginBottom: '12px', fontSize: '15px' }}>
+          Are you sure you want to withdraw your application for:
+        </p>
+        <p style={{ 
+          fontWeight: '600', 
+          fontSize: '17px', 
+          color: '#1a1f36',
+          marginBottom: '12px'
+        }}>
+          {selectedWithdrawApp.job_postings?.position_title || 'Position Not Found'}
+        </p>
+        <p style={{ 
+          color: '#6c757d', 
+          fontSize: '14px',
+          margin: 0
+        }}>
+          This action <strong>cannot be undone</strong>.
+        </p>
+      </div>
+      
+      {/* Actions */}
+      <div className="confirm-card-footer" style={{ 
+        margin: '0 -24px -24px -24px', 
+        padding: '16px 24px', 
+        borderRadius: '0 0 12px 12px',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '10px'
+      }}>
+        <button 
+          className="btn-cancel"
+          onClick={() => setShowWithdrawModal(false)}
+          style={{
+            padding: '8px 24px',
+            background: '#D3F0F9',
+            color: '#4a5568',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontWeight: '500',
+            transition: 'background 0.2s ease'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = '#b8e4f0'}
+  onMouseLeave={(e) => e.currentTarget.style.background = '#D3F0F9'}
+        >
+          Cancel
+        </button>
+        <button 
+          onClick={() => {
+            setShowWithdrawModal(false);
+            handleWithdraw(selectedWithdrawApp);
+          }}
+          disabled={withdrawing}
+          style={{ 
+            padding: '8px 24px',
+            background: '#dc2626',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: withdrawing ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'background 0.2s ease',
+            opacity: withdrawing ? 0.6 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!withdrawing) {
+              e.currentTarget.style.background = '#b91c1c';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!withdrawing) {
+              e.currentTarget.style.background = '#dc2626';
+            }
+          }}
+        >
+          {withdrawing ? 'Withdrawing...' : 'Yes, Withdraw'}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+{/* Success Notification */}
+{successMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#10b981',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px'
+  }}>
+    <ApplicantCheckboxIcon size={22} style={{ color: 'white' }} />
+    {successMessage}
+  </div>
+)}
+
 
       {/* Modal */}
       {showDetailsModal && selectedApplication && (

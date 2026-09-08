@@ -6,14 +6,19 @@ import Navbar from "../components/Navbar";
 import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
-import { DocumentCheckIcon, PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
+import { DocumentCheckIcon, CheckMarkSquareInterviewIcon, CheckInterviewIconDashboard,  PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
 import JobCandidateButton from "../components/JobCandidateButton";
 import communityLogo from '../assets/community3-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import compareplumpLogo from '../assets/compare-plump-icon.png';
 import Loader from '../components/Loader';
 
+
 export default function JobCandidatesPage() {
+const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
+const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
+const [bulkUpdateSuccessMessage, setBulkUpdateSuccessMessage] = useState(null);
+
   const { jobId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -450,8 +455,6 @@ export default function JobCandidatesPage() {
     return;
   }
 
-  if (!window.confirm(`Update ${selectedRows.length} candidate(s) status to "${newStatus}"?`)) return;
-
   setBulkUpdating(true);
 
   try {
@@ -576,17 +579,20 @@ export default function JobCandidatesPage() {
 
     await Promise.all(updatePromises);
 
-    alert(`✅ Successfully updated ${selectedRows.length} candidate(s) to ${newStatus}`);
-    setSelectedRows([]);
-    setMassSelectMode(false);
-    loadJobAndCandidates();
+    // Show success notification instead of alert
+setBulkUpdateSuccessMessage(` Successfully updated ${selectedRows.length} candidate(s) to ${newStatus}`);
+setTimeout(() => setBulkUpdateSuccessMessage(null), 5000);
 
-  } catch (error) {
-    console.error('Error updating candidates:', error);
-    alert('Error updating candidates: ' + error.message);
-  } finally {
-    setBulkUpdating(false);
-  }
+setSelectedRows([]);
+setMassSelectMode(false);
+loadJobAndCandidates();
+
+} catch (error) {
+console.error('Error updating candidates:', error);
+alert('Error updating candidates: ' + error.message);
+} finally {
+setBulkUpdating(false);
+}
 };
 
   const toggleCompare = (candidate) => {
@@ -1249,23 +1255,41 @@ export default function JobCandidatesPage() {
                     <option value="NOT_SELECTED">Not Selected</option>
                     <option value="REJECTED">Rejected</option>
                   </select>
-                  <button
-                    onClick={() => bulkUpdateStatus(bulkStatus)}
-                    disabled={bulkUpdating}
-                    style={{
-                      padding: '6px 16px',
-                      background: '#10b981',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      cursor: bulkUpdating ? 'not-allowed' : 'pointer',
-                      fontWeight: '500',
-                      fontSize: '13px',
-                      opacity: bulkUpdating ? 0.6 : 1
-                    }}
-                  >
-                    {bulkUpdating ? 'Updating...' : `Apply to ${selectedRows.length}`}
-                  </button>
+                 <button
+  onClick={() => {
+    if (selectedRows.length === 0) {
+      alert('Please select at least one candidate.');
+      return;
+    }
+    setPendingBulkStatus(bulkStatus);
+    setShowBulkConfirmModal(true);
+  }}
+  disabled={bulkUpdating}
+  style={{
+    padding: '6px 16px',
+    background: '#0d9488',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: bulkUpdating ? 'not-allowed' : 'pointer',
+    fontWeight: '500',
+    fontSize: '13px',
+    opacity: bulkUpdating ? 0.6 : 1,
+     transition: 'background 0.2s ease'
+  }}
+   onMouseEnter={(e) => {
+    if (!bulkUpdating) {
+      e.currentTarget.style.background = '#0f766e';
+    }
+  }}
+  onMouseLeave={(e) => {
+    if (!bulkUpdating) {
+      e.currentTarget.style.background = '#0d9488';
+    }
+  }}
+>
+  {bulkUpdating ? 'Updating...' : `Apply to ${selectedRows.length}`}
+</button>
                 </div>
               )}
             </div>
@@ -1554,6 +1578,8 @@ export default function JobCandidatesPage() {
         </div>
       )}
 
+{/* Bulk Update Success Notification */} {bulkUpdateSuccessMessage && ( <div style={{ position: 'fixed', bottom: '20px', right: '20px', padding: '12px 20px', background: '#10b981', color: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px', animation: 'slideIn 0.3s ease' }}> <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} /> <span>{bulkUpdateSuccessMessage}</span> </div> )}
+
       {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (
         <div className="modal-overlay" onClick={() => setShowDetailsModal(false)}>
@@ -1615,7 +1641,7 @@ export default function JobCandidatesPage() {
           {selectedApplication.docs_submitted?.transcript ? (
             <DocumentCheckIcon size={26} color="#16e19d" />
           ) : (
-            <span style={{ color: '#ef4444', fontSize: '14px' }}>✕</span>
+            <span style={{ color: '#ef4444', fontSize: '20px', marginLeft: '5px' }}>✕</span>
           )}
           Transcript of Records
         </span>
@@ -1645,7 +1671,7 @@ export default function JobCandidatesPage() {
           {selectedApplication.docs_submitted?.performanceRating ? (
             <DocumentCheckIcon size={26} color="#16e19d" />
           ) : (
-            <span style={{ color: '#ef4444', fontSize: '22px' }}>✕</span>
+            <span style={{ color: '#ef4444', fontSize: '20px',  marginLeft: '5px' }}>✕</span>
           )}
           Performance Rating
         </span>
@@ -1806,117 +1832,153 @@ export default function JobCandidatesPage() {
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Education</td>
                       <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {cleanEducationText(selectedCompareCandidates[0].education)}
-                        {(() => {
-                          const edu = selectedCompareCandidates[0].education || '';
-                          const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
-                          const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
-                          const requiredLevel = jobRequirements.education || 0;
-                          if (requiredLevel === 0) return ' (Not Required)';
-                          return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
-                        })()}
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {cleanEducationText(selectedCompareCandidates[1].education)}
-                        {(() => {
-                          const edu = selectedCompareCandidates[1].education || '';
-                          const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
-                          const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
-                          const requiredLevel = jobRequirements.education || 0;
-                          if (requiredLevel === 0) return ' (Not Required)';
-                          return actualLevel >= requiredLevel ? ' ✅' : ' ❌';
-                        })()}
-                      </td>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {cleanEducationText(selectedCompareCandidates[0].education)}
+    {(() => {
+      const edu = selectedCompareCandidates[0].education || '';
+      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+      const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
+      const requiredLevel = jobRequirements.education || 0;
+      if (requiredLevel === 0) return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+      return actualLevel >= requiredLevel ? 
+        <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+        <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+    })()}
+  </span>
+</td>
+
+                     <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {cleanEducationText(selectedCompareCandidates[1].education)}
+    {(() => {
+      const edu = selectedCompareCandidates[1].education || '';
+      const eduLevels = ['None', 'Elementary', 'High School', '2-Year College', "Bachelor's", "Master's", "PhD/Doctorate"];
+      const actualLevel = eduLevels.indexOf(cleanEducationText(edu));
+      const requiredLevel = jobRequirements.education || 0;
+      if (requiredLevel === 0) return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+      return actualLevel >= requiredLevel ? 
+        <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+        <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+    })()}
+  </span>
+</td>
                     </tr>
 
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Eligibility</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[0].eligibility !== 'None' ? `CS ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
-                        {(() => {
-                          const actual = selectedCompareCandidates[0].eligibility || 'None';
-                          const required = jobRequirements.eligibility;
-                          if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
-                            return ' (Not Required)';
-                          }
-                          return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
-                        })()}
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[1].eligibility !== 'None' ? `CS ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
-                        {(() => {
-                          const actual = selectedCompareCandidates[1].eligibility || 'None';
-                          const required = jobRequirements.eligibility;
-                          if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
-                            return ' (Not Required)';
-                          }
-                          return actual.toLowerCase() === required.toLowerCase() ? ' ✅' : ' ❌';
-                        })()}
-                      </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {selectedCompareCandidates[0].eligibility !== 'None' ? `CS ${selectedCompareCandidates[0].eligibility}` : 'None Required'}
+    {(() => {
+      const actual = selectedCompareCandidates[0].eligibility || 'None';
+      const required = jobRequirements.eligibility;
+      if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
+        return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+      }
+      return actual.toLowerCase() === required.toLowerCase() ? 
+        <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+        <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+    })()}
+  </span>
+</td>
+
+<td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {selectedCompareCandidates[1].eligibility !== 'None' ? `CS ${selectedCompareCandidates[1].eligibility}` : 'None Required'}
+    {(() => {
+      const actual = selectedCompareCandidates[1].eligibility || 'None';
+      const required = jobRequirements.eligibility;
+      if (!required || required === '' || required === 'None' || required === 'none' || required === 'null' || required === 'None Required') {
+        return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+      }
+      return actual.toLowerCase() === required.toLowerCase() ? 
+        <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+        <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+    })()}
+  </span>
+</td>
                     </tr>
 
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Training</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[0].training || 'N/A'}
-                        {(() => {
-                          const training = selectedCompareCandidates[0].training || '';
-                          const match = training.match(/(\d+)\s*\/\s*(\d+)/);
-                          if (match) {
-                            const actual = parseInt(match[1]);
-                            const required = parseInt(match[2]);
-                            if (required === 0) return ' (Not Required)';
-                            return actual >= required ? ' ✅' : ' ❌';
-                          }
-                          return ' (Not Required)';
-                        })()}
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[1].training || 'N/A'}
-                        {(() => {
-                          const training = selectedCompareCandidates[1].training || '';
-                          const match = training.match(/(\d+)\s*\/\s*(\d+)/);
-                          if (match) {
-                            const actual = parseInt(match[1]);
-                            const required = parseInt(match[2]);
-                            if (required === 0) return ' (Not Required)';
-                            return actual >= required ? ' ✅' : ' ❌';
-                          }
-                          return ' (Not Required)';
-                        })()}
-                      </td>
+                    <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {selectedCompareCandidates[0].training || 'N/A'}
+    {(() => {
+      const training = selectedCompareCandidates[0].training || '';
+      const match = training.match(/(\d+)\s*\/\s*(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = parseInt(match[2]);
+        if (required === 0) return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+        return actual >= required ? 
+          <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+          <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+      }
+      return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+    })()}
+  </span>
+</td>
+
+<td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {selectedCompareCandidates[1].training || 'N/A'}
+    {(() => {
+      const training = selectedCompareCandidates[1].training || '';
+      const match = training.match(/(\d+)\s*\/\s*(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = parseInt(match[2]);
+        if (required === 0) return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+        return actual >= required ? 
+          <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+          <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+      }
+      return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+    })()}
+  </span>
+</td>
                     </tr>
 
                     <tr>
                       <td style={{ padding: '10px 12px', fontWeight: '600', borderBottom: '1px solid #f0f0f0' }}>Experience</td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[0].experience || 'N/A'}
-                        {(() => {
-                          const exp = selectedCompareCandidates[0].experience || '';
-                          const match = exp.match(/(\d+)/);
-                          if (match) {
-                            const actual = parseInt(match[1]);
-                            const required = jobRequirements.workExperience || 0;
-                            if (required === 0) return ' (Not Required)';
-                            return actual >= required ? ' ✅' : ' ❌';
-                          }
-                          return ' (Not Required)';
-                        })()}
-                      </td>
-                      <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
-                        {selectedCompareCandidates[1].experience || 'N/A'}
-                        {(() => {
-                          const exp = selectedCompareCandidates[1].experience || '';
-                          const match = exp.match(/(\d+)/);
-                          if (match) {
-                            const actual = parseInt(match[1]);
-                            const required = jobRequirements.workExperience || 0;
-                            if (required === 0) return ' (Not Required)';
-                            return actual >= required ? ' ✅' : ' ❌';
-                          }
-                          return ' (Not Required)';
-                        })()}
-                      </td>
+                     <td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {selectedCompareCandidates[0].experience || 'N/A'}
+    {(() => {
+      const exp = selectedCompareCandidates[0].experience || '';
+      const match = exp.match(/(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = jobRequirements.workExperience || 0;
+        if (required === 0) return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+        return actual >= required ? 
+          <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+          <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+      }
+      return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+    })()}
+  </span>
+</td>
+
+<td style={{ padding: '10px 12px', textAlign: 'center', borderBottom: '1px solid #f0f0f0' }}>
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+    {selectedCompareCandidates[1].experience || 'N/A'}
+    {(() => {
+      const exp = selectedCompareCandidates[1].experience || '';
+      const match = exp.match(/(\d+)/);
+      if (match) {
+        const actual = parseInt(match[1]);
+        const required = jobRequirements.workExperience || 0;
+        if (required === 0) return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+        return actual >= required ? 
+          <CheckInterviewIconDashboard size={18} style={{ color: '#10b981' }} /> : 
+          <span style={{ color: '#dc2626', fontSize: '16px', marginLeft: '3px' }}>✕</span>;
+      }
+      return <span style={{ fontSize: '12px', color: '#6c757d' }}> (Not Required)</span>;
+    })()}
+  </span>
+</td>
                     </tr>
 
                     <tr>
@@ -1958,7 +2020,7 @@ export default function JobCandidatesPage() {
   gap: '6px'
 }}>
   <JusticePlumpIcon size={18} />
-  Comparison Summary:
+  Quick Comparison Summary:
 </h4>
                 <div style={{ fontSize: '14px', color: '#4a5568', whiteSpace: 'pre-line' }}>
                   {getComparisonSummary(selectedCompareCandidates[0], selectedCompareCandidates[1])}
@@ -1974,6 +2036,61 @@ export default function JobCandidatesPage() {
           </div>
         </div>
       )}
+
+
+      
+{/* Bulk Update Confirmation Modal */}
+{showBulkConfirmModal && (
+  <div className="modal-overlay" onClick={() => setShowBulkConfirmModal(false)}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
+      {/* Simple Header with Icon */}
+      <div className="confirm-card-header">
+        <span className="confirm-icon" style = {{marginBottom: '4px'}}>⚠️</span>
+        <h3>Confirm Update</h3>
+      </div>
+      
+      {/* Message */}
+      <div className="confirm-card-body">
+        <p>
+          Are you sure you want to update <strong>{selectedRows.length}</strong> candidate(s) to:
+        </p>
+        <p style={{ 
+          fontWeight: '600', 
+          fontSize: '18px', 
+          color: '#1a1f36',
+          marginTop: '8px',
+          textTransform: 'capitalize'
+        }}>
+          {pendingBulkStatus}
+        </p>
+      </div>
+      
+      {/* Actions */}
+      <div className="confirm-card-footer" style={{ margin: '0 -24px -24px -24px', padding: '16px 24px', borderRadius: '0 0 12px 12px' }}>
+        <button 
+          className="btn-cancel"
+          onClick={() => setShowBulkConfirmModal(false)}
+        >
+          Cancel
+        </button>
+        <button 
+          className="btn-confirm"
+          onClick={() => {
+            setShowBulkConfirmModal(false);
+            bulkUpdateStatus(pendingBulkStatus);
+          }}
+          style={{ background: '#0d9488', transition: 'background 0.2s ease' }}
+           onMouseEnter={(e) => e.currentTarget.style.background = '#0f766e'}
+  onMouseLeave={(e) => e.currentTarget.style.background = '#0d9488'}
+        >
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
     </>
   );
 }

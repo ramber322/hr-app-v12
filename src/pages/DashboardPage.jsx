@@ -802,9 +802,7 @@ export default function DashboardPage() {
   <ClockIcon size={22} />
   Recent Activity
 </h3>
-              <span className="view-more-btn" onClick={() => navigate('/hr/applications')}>
-                View more →
-              </span>
+             
             </div>
             <div className="card-body">
               <div className="activity-list">

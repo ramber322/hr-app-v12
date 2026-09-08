@@ -655,7 +655,12 @@ export default function BrowseJobsPage() {
     return (
       <div className="success-popup-overlay" onClick={() => setShowSuccessPopup(false)}>
         <div className="success-popup" onClick={(e) => e.stopPropagation()}>
-          <div className="icon">✅</div>
+          <div className="icon"  style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    margin: '0 auto'
+  }}><ApplicantCheckboxIcon size={52} /> </div>
           <h2>Application Submitted!</h2>
           <p className="sub-text">
             Your application for <strong>"{positionTitle}"</strong> has been submitted successfully.
