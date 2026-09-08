@@ -146,16 +146,32 @@ function SignUpPage() {
     />
   </div>
 
-  <div className="input-group half">
-    <label>Phone Number</label>
+<div className="input-group half">
+  <label>Phone Number</label>
+  <div style={{ position: 'relative' }}>
     <input
       type="tel"
       placeholder="0912 345 6789"
       value={phoneNumber}
       onChange={(e) => setPhoneNumber(e.target.value)}
       disabled={isLoading}
+      style={{ paddingRight: '45px' }}
     />
+    <span style={{
+      position: 'absolute',
+      right: '12px',
+      top: '50%',
+      transform: 'translateY(-50%)',
+      pointerEvents: 'none',
+      fontSize: '12px',
+      fontWeight: '600',
+      color: '#6c757d',
+      letterSpacing: '0.5px'
+    }}>
+      PH
+    </span>
   </div>
+</div>
 </div>
 
             <div className="form-row password-row">
