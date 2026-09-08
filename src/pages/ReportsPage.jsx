@@ -609,7 +609,8 @@ h3 svg {
 
         <div className="page-header" >
          <h1 className="icon-title">
-  <ReportsIcon size={28} />
+        <span style = {{ filter: 'brightness(0) saturate(100%) invert(25%) sepia(50%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'}}>
+  <ReportsIcon size={28} color= '#1e293b'  /> </span>
   Reports
 </h1>
           <p>Generate and export recruitment reports</p>

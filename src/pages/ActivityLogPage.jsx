@@ -416,6 +416,7 @@ export default function ActivityLogPage() {
     height: 38,
     
     filter: 'brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%)'
+   
   }} 
 />
 Activity Logs

@@ -423,7 +423,7 @@ export default function CandidatesPage() {
       <style>{styles}</style>
 
       <div className="candidates-container">
-        <div className="page-header">
+        <div className="page-header" >
        <h1 style={{ 
   display: 'flex', 
   alignItems: 'center', 
@@ -433,7 +433,8 @@ export default function CandidatesPage() {
   borderRadius: '8px',
   marginLeft: '-20px'
 }}>
-  <DocumentListIcon color=""   size={33} />
+  
+  <DocumentListIcon size={33} /> 
   Applications
 </h1>
           <p>View and manage all job applications across all postings</p>
