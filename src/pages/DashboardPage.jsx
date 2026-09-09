@@ -8,7 +8,7 @@ import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import documentplumpLogo from '../assets/document-plump-dashboard-icon.png';
 import openjobLogo from '../assets/open-job-icon.png';
 import Loader from '../components/Loader';
-// Chart.js imports
+// Chart.js importss
 import {
   Chart as ChartJS,
   CategoryScale,

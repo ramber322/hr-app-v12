@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
-import { DocumentCheckIcon, CircularCheckSuccessIcon, CheckInterviewIconDashboard,  PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
+import { DocumentCheckIcon, CircularCheckSuccessIcon, CheckInterviewIconDashboard, CheckMarkSquareInterviewIcon,  PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
 import JobCandidateButton from "../components/JobCandidateButton";
 import communityLogo from '../assets/community3-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
@@ -15,6 +15,11 @@ import Loader from '../components/Loader';
 
 
 export default function JobCandidatesPage() {
+const [showStatusConfirm, setShowStatusConfirm] = useState(false);
+const [pendingStatus, setPendingStatus] = useState(null);
+const [statusSuccessMessage, setStatusSuccessMessage] = useState('');
+
+
 const [showBulkConfirmModal, setShowBulkConfirmModal] = useState(false);
 const [pendingBulkStatus, setPendingBulkStatus] = useState(null);
 const [bulkUpdateSuccessMessage, setBulkUpdateSuccessMessage] = useState(null);
@@ -920,98 +925,125 @@ setBulkUpdating(false);
   };
 
   const updateCandidateStatus = async (applicationId, newStatus) => {
-    if (!window.confirm(`Change status to "${newStatus}"?`)) return;
+  setUpdatingStatus(true);
+  
+  try {
+    const oldStatus = selectedApplication?.status || 'PENDING';
     
-    setUpdatingStatus(true);
+    const { data: appData, error: appError } = await supabase
+      .from('applications')
+      .select('applicant_id, job_id')
+      .eq('id', applicationId)
+      .single();
     
-    try {
-      const oldStatus = selectedApplication?.status || 'PENDING';
+    if (appError) throw appError;
+    
+    const { data: jobData, error: jobError } = await supabase
+      .from('job_postings')
+      .select('position_title')
+      .eq('id', appData.job_id)
+      .single();
+    
+    if (jobError) throw jobError;
+    
+    const { error } = await supabase
+      .from('applications')
+      .update({ 
+        status: newStatus,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', applicationId);
+    
+    if (error) throw error;
+    
+    if (newStatus === 'INTERVIEW_SCHEDULED') {
+      const { data: existingInterview, error: checkError } = await supabase
+        .from('interviews')
+        .select('id')
+        .eq('application_id', applicationId)
+        .maybeSingle();
       
-      const { data: appData, error: appError } = await supabase
-        .from('applications')
-        .select('applicant_id, job_id')
-        .eq('id', applicationId)
-        .single();
-      
-      if (appError) throw appError;
-      
-      const { data: jobData, error: jobError } = await supabase
-        .from('job_postings')
-        .select('position_title')
-        .eq('id', appData.job_id)
-        .single();
-      
-      if (jobError) throw jobError;
-      
-      const { error } = await supabase
-        .from('applications')
-        .update({ 
-          status: newStatus,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', applicationId);
-      
-      if (error) throw error;
-      
-      if (newStatus === 'INTERVIEW_SCHEDULED') {
-        const { data: existingInterview, error: checkError } = await supabase
-          .from('interviews')
-          .select('id')
-          .eq('application_id', applicationId)
-          .maybeSingle();
+      if (!existingInterview) {
+        const { data: userData } = await supabase.auth.getUser();
+        const userId = userData.user?.id || null;
         
-        if (!existingInterview) {
-          const { data: userData } = await supabase.auth.getUser();
-          const userId = userData.user?.id || null;
-          
-          const { error: insertError } = await supabase
-            .from('interviews')
-            .insert({
-              application_id: applicationId,
-              applicant_id: appData.applicant_id,
-              job_id: appData.job_id,
-              scheduled_date: null,
-              duration_minutes: null,
-              location: null,
-              description: null,
-              status: 'SCHEDULED',
-              needs_scheduling: true,
-              scheduled_by: userId,
-              scheduled_at: new Date().toISOString(),
-            });
-          
-          if (insertError) {
-            console.error('Error creating interview record:', insertError);
-          } else {
-            console.log('✅ Interview record created for TBD scheduling');
-          }
+        const { error: insertError } = await supabase
+          .from('interviews')
+          .insert({
+            application_id: applicationId,
+            applicant_id: appData.applicant_id,
+            job_id: appData.job_id,
+            scheduled_date: null,
+            duration_minutes: null,
+            location: null,
+            description: null,
+            status: 'SCHEDULED',
+            needs_scheduling: true,
+            scheduled_by: userId,
+            scheduled_at: new Date().toISOString(),
+          });
+        
+        if (insertError) {
+          console.error('Error creating interview record:', insertError);
         } else {
-          console.log('ℹ️ Interview record already exists for this application');
+          console.log('✅ Interview record created for TBD scheduling');
         }
+      } else {
+        console.log('ℹ️ Interview record already exists for this application');
       }
-      
-      console.log('📨 Sending notification to applicant...');
-      
-      const result = await notifyStatusChange(
-        appData.applicant_id,
-        jobData.position_title,
-        oldStatus,
-        newStatus
-      );
-      
-      console.log('📨 Notification result:', result);
-      
-      alert(`Status updated to ${newStatus}`);
-      loadJobAndCandidates();
-      
-    } catch (error) {
-      console.error('Error updating status:', error);
-      alert('Error updating status: ' + error.message);
-    } finally {
-      setUpdatingStatus(false);
     }
-  };
-
+    
+    console.log('📨 Sending notification to applicant...');
+    
+    const result = await notifyStatusChange(
+      appData.applicant_id,
+      jobData.position_title,
+      oldStatus,
+      newStatus
+    );
+    
+    console.log('📨 Notification result:', result);
+    
+    //  CRITICAL: Close all modals FIRST
+    setShowStatusConfirm(false);
+    setShowDetailsModal(false);
+    setSelectedApplication(null);
+    setPendingStatus(null);
+    
+    // Turn off loading state
+    setUpdatingStatus(false);
+    
+    // Show success message
+    setStatusSuccessMessage(` Status updated to "${newStatus}" successfully!`);
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setStatusSuccessMessage('');
+    }, 5000);
+    
+    // Refresh data
+    loadJobAndCandidates();
+    
+  } catch (error) {
+    console.error('Error updating status:', error);
+    
+    // Close modals on error too
+    setShowStatusConfirm(false);
+    setShowDetailsModal(false);
+    setSelectedApplication(null);
+    setPendingStatus(null);
+    
+    // Turn off loading state
+    setUpdatingStatus(false);
+    
+    // Show error message
+    setStatusSuccessMessage(`❌ Error updating status: ${error.message}`);
+    
+    setTimeout(() => {
+      setStatusSuccessMessage('');
+    }, 5000);
+  }
+};
   const filteredCandidates = candidates
     .filter((c) => {
       const matchesSearch = c.applicant_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -1725,11 +1757,41 @@ setBulkUpdating(false);
                         <option value="REJECTED">Rejected</option>
                       </select>
                       <button 
-                        onClick={() => updateCandidateStatus(selectedApplication.id, selectedApplication.status)}
-                        disabled={updatingStatus}
-                      >
-                        Update
-                      </button>
+  onClick={() => {
+    setPendingStatus(selectedApplication.status);
+    setShowStatusConfirm(true);
+  }}
+  disabled={updatingStatus}
+  style={{
+    padding: '8px 16px',
+    background: updatingStatus ? '#4338ca' : '#4F46E5',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: updatingStatus ? 'not-allowed' : 'pointer',
+    fontWeight: '500',
+    transition: 'background 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    opacity: updatingStatus ? 0.7 : 1
+  }}
+  onMouseEnter={(e) => {
+    if (!updatingStatus) e.currentTarget.style.background = '#4338ca';
+  }}
+  onMouseLeave={(e) => {
+    if (!updatingStatus) e.currentTarget.style.background = '#4F46E5';
+  }}
+>
+  {updatingStatus ? (
+    <>
+      <span className="spinner" />
+      Updating...
+    </>
+  ) : (
+    'Update'
+  )}
+</button>
                     </div>
                   </div>
                   <div><span className="detail-label">Applied Date</span><span className="detail-value">{formatDate(selectedApplication.applied_date)}</span></div>
@@ -1740,20 +1802,45 @@ setBulkUpdating(false);
                 <button className="close-btn" onClick={() => setShowDetailsModal(false)}>Close</button>
                 {selectedApplication.status !== 'INTERVIEW_SCHEDULED' && (
                   <button 
-                    className="schedule-btn" 
-                    onClick={() => updateCandidateStatus(selectedApplication.id, 'INTERVIEW_SCHEDULED')}
-                    disabled={updatingStatus}
-                    style={{
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-  }}
-                  >
-                     <img src={calendarminimalLogo} alt="Community"
-           style={{ width: 18, height: 18, 
-          filter: 'brightness(0) saturate(100%) invert(100%) brightness(100%)' }} />  Schedule Interview
-                  </button>
+      className="schedule-btn" 
+      onClick={() => {
+        setPendingStatus('INTERVIEW_SCHEDULED');
+        setShowStatusConfirm(true);
+      }}
+      disabled={updatingStatus}
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '8px',
+        padding: '8px 16px',
+        background: updatingStatus ? '#4338ca' : '#4F46E5',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: updatingStatus ? 'not-allowed' : 'pointer',
+        fontWeight: '500',
+        transition: 'background 0.2s ease',
+        opacity: updatingStatus ? 0.7 : 1
+      }}
+      onMouseEnter={(e) => {
+        if (!updatingStatus) e.currentTarget.style.background = '#4338ca';
+      }}
+      onMouseLeave={(e) => {
+        if (!updatingStatus) e.currentTarget.style.background = '#4F46E5';
+      }}
+    >
+      <img 
+        src={calendarminimalLogo} 
+        alt="Calendar" 
+        style={{ 
+          width: 18, 
+          height: 18, 
+          filter: 'brightness(0) saturate(100%) invert(100%) brightness(100%)' 
+        }} 
+      />
+      Schedule Interview
+    </button>
                 )}
               </div>
             </div>
@@ -2049,7 +2136,7 @@ setBulkUpdating(false);
     <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
       {/* Simple Header with Icon */}
       <div className="confirm-card-header">
-        <span className="confirm-icon" style = {{marginBottom: '4px'}}>⚠️</span>
+        <span className="confirm-icon" style = {{marginBottom: '4px'}}><CheckMarkSquareInterviewIcon size={38}  color="#43ae4d"/></span>
         <h3>Confirm Update</h3>
       </div>
       
@@ -2088,6 +2175,124 @@ setBulkUpdating(false);
   onMouseLeave={(e) => e.currentTarget.style.background = '#0d9488'}
         >
           Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+{/* Status Update Success Notification */}
+{statusSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: statusSuccessMessage.includes('Error') ? '#dc2626' : '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    {statusSuccessMessage.includes('Error') ? (
+      <span style={{ fontSize: '18px' }}>❌</span>
+    ) : (
+      <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
+    )}
+    <span>{statusSuccessMessage}</span>
+  </div>
+)}
+
+{/* Status Update Confirmation Modal */}
+{showStatusConfirm && (
+  <div className="modal-overlay" onClick={() => {
+    if (!updatingStatus) setShowStatusConfirm(false);
+  }}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
+      <div className="confirm-card-header">
+        <span className="confirm-icon" style={{ fontSize: '28px' }}>    <CheckMarkSquareInterviewIcon size={38} color="#43ae4d" /></span>
+        <h3>Confirm Status Update</h3>
+      </div>
+      <div className="confirm-card-body">
+        <p>Are you sure you want to change the status to?</p>
+        <p style={{ 
+          fontWeight: '600', 
+          fontSize: '16px', 
+          color: '#1a1f36',
+          marginTop: '8px'
+        }}>
+          {pendingStatus}
+        </p>
+        <p style={{ color: '#6c757d', fontSize: '14px', marginTop: '8px' }}>
+          This will notify the applicant of the status change.
+        </p>
+      </div>
+      <div className="confirm-card-footer" style={{ margin: '0 -24px -24px -24px', padding: '16px 24px', borderRadius: '0 0 12px 12px' }}>
+        <button 
+          className="btn-cancel" 
+          onClick={() => setShowStatusConfirm(false)}
+          disabled={updatingStatus}
+          style={{
+            padding: '8px 24px',
+            background: '#D3F0F9',
+            color: '#1a3a5c',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: updatingStatus ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'background 0.2s ease',
+            opacity: updatingStatus ? 0.5 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!updatingStatus) e.currentTarget.style.background = '#b8e4f0';
+          }}
+          onMouseLeave={(e) => {
+            if (!updatingStatus) e.currentTarget.style.background = '#D3F0F9';
+          }}
+        >
+          Cancel
+        </button>
+        <button 
+          className="btn-confirm"
+          onClick={() => {
+            setShowStatusConfirm(false);
+            updateCandidateStatus(selectedApplication.id, pendingStatus);
+          }}
+          disabled={updatingStatus}
+          style={{
+            padding: '8px 24px',
+            background: updatingStatus ? '#0f766e' : '#0d9488',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: updatingStatus ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            opacity: updatingStatus ? 0.7 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!updatingStatus) e.currentTarget.style.background = '#0f766e';
+          }}
+          onMouseLeave={(e) => {
+            if (!updatingStatus) e.currentTarget.style.background = '#0d9488';
+          }}
+        >
+          {updatingStatus ? (
+            <>
+              <span className="spinner" />
+              Updating...
+            </>
+          ) : (
+            'Confirm'
+          )}
         </button>
       </div>
     </div>
