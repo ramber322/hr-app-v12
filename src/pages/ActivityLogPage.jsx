@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/ActivityLogPage.css";
-import clipboardactivitylogLogo from '../assets/clipboard-activitylog-icon.png';
 import activitylogLogo from '../assets/activitylog-new-icon.png';
 import { BriefcaseActivityLogIcon, UpdatedPencilActivityLogIcon, MailActivityLogIcon, UserAddActivityLogIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';

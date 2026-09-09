@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
-import { TimeSandIcon, ApplicantClockIcon, ApplicantNotesIcon, HandshakeIcon, ApplicantClipboardIcon, CalendarColoredIcon, DocumentColoredIcon, WelcomeIcon, CalendarIcon, MyApplicationsIcon, DocumentApplicantDashboardIcon, ColoredPushPinIcon } from "../components/icons/CustomIcons";
+import {ApplicantClockIcon, ApplicantNotesIcon, HandshakeIcon, ApplicantClipboardIcon } from "../components/icons/CustomIcons";
 import locationLogo from '../assets/icon-location.png';
 import '/src/styles/DashboardApplicantPage.css';
 import mailBlackLogo from '../assets/mail-blue-icon.png';

@@ -1,4 +1,4 @@
-import { CalendarColoredIcon, ApplicantCheckboxIcon } from "../components/icons/CustomIcons";
+import { ApplicantCheckboxIcon } from "../components/icons/CustomIcons";
 function ModalPreview() {
   const positionTitle = "HR Officer";
   const score = 87;

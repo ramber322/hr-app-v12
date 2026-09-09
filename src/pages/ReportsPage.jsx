@@ -8,7 +8,7 @@ import * as XLSX from 'xlsx';
 import "../styles/ReportsPage.css";
  import Loader from '../components/Loader';
 
-import { ReportsChartIcon, ReportsIcon, EnterpriseIcon, PdfIcon, ExcelIcon, DocumentColoredIcon, PieChartIcon } from "../components/icons/CustomIcons";
+import { ReportsChartIcon, ReportsIcon, EnterpriseIcon, PdfIcon, ExcelIcon, PieChartIcon } from "../components/icons/CustomIcons";
 
 // Chart.js imports
 import {

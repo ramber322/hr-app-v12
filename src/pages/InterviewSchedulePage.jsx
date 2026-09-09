@@ -4,16 +4,15 @@ import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
 import "../styles/InterviewSchedulePage.css";
 import { sendInterviewEmail, sendRescheduleEmail  } from '../services/emailService';
-import { CalendarMarkBlueIcon, CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
+import {CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import mailblackLogo from '../assets/mail-black-icon.png';
 import calendarplumpLogo from '../assets/calendar-plump-icon.png';
 import locationplumpLogo from '../assets/location-plump-icon.png';
 import noteplumpLogo from '../assets/note-plump-icon.png';
 import phoneLogo from '../assets/phone-icon.png';
-import Loader from "../components/Loader";
 import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon,
-CircleIcon, CheckInterviewIcon, UserBookIcon, CalendarRefreshIcon,CheckSquareIcon,
+  UserBookIcon, CalendarRefreshIcon,
 CheckMarkSquareInterviewIcon
     } from "../components/icons/CustomIcons";
 

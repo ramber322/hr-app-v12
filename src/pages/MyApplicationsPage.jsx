@@ -3,10 +3,9 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/MyApplicationsPage.css";
-import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
-import { ApplicantCheckboxIcon, CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
+import { CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
 export default function MyApplicationsPage() {

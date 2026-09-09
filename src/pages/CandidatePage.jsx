@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
-import { BriefcaseIcon, ConfettiIcon,  DocumentListIcon } from "../components/icons/CustomIcons";
+import { DocumentListIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
 export default function CandidatesPage() {
