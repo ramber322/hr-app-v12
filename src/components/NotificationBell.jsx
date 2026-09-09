@@ -118,13 +118,13 @@ function NotificationBell() {
     return `${days}d `;
   };
 
-  const getNotificationIcon = (type) => {
-    const icons = {
-      'status_update': '•',
-      'interview_schedule': '•'
-    };
-    return icons[type] || '•';
+const getNotificationIcon = (type) => {
+  const icons = {
+    'status_update': '',
+    'interview_schedule': ''
   };
+  return icons[type] || '';
+};
 
   const styles = `
     .notification-container {
@@ -237,8 +237,8 @@ function NotificationBell() {
       transition: all 0.2s;
       border-bottom: 1px solid #f0f0f0;
       display: flex;
+      align-items: center;  /* ← ADD THIS: Vertically centers all content */
       gap: 12px;
-      align-items: flex-start;
     }
 
     .notification-item:hover {
@@ -256,7 +256,6 @@ function NotificationBell() {
     .notification-icon {
       font-size: 18px;
       flex-shrink: 0;
-      margin-top: 2px;
     }
 
     .notification-content {
@@ -376,6 +375,18 @@ function NotificationBell() {
                     className={`notification-item ${!notification.is_read ? 'unread' : ''}`}
                     onClick={() => handleNotificationClick(notification)}
                   >
+                    {/* Dot indicator for unread notifications - VERTICALLY CENTERED */}
+                    {!notification.is_read && (
+                      <span style={{
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: '#4f46e5',
+                        flexShrink: 0,
+                        display: 'inline-block'
+                      }} />
+                    )}
+                    
                     <span className="notification-icon">
                       {getNotificationIcon(notification.type)}
                     </span>

@@ -939,13 +939,30 @@ export default function BrowseJobsPage() {
                       }}>
                         {showResults ? 'Close' : 'Cancel'}
                       </button>
-                      <button 
-                        className="submit-btn" 
-                        onClick={handleSubmitApplication} 
-                        disabled={submitting}
-                      >
-                        {submitting ? "Processing..." : showResults ? "Submit Application" : "Submit Application"}
-                      </button>
+                     <button 
+  className="submit-btn" 
+  onClick={handleSubmitApplication} 
+  disabled={submitting}
+  style={{
+    background: '#4f46e5',
+    opacity: submitting ? 0.8 : 1,
+    cursor: submitting ? 'not-allowed' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
+    transition: 'opacity 0.2s ease'
+  }}
+>
+  {submitting ? (
+    <>
+      <span className="spinner" style={{ width: '16px', height: '16px' }} />
+      Processing...
+    </>
+  ) : (
+    'Submit Application'
+  )}
+</button>
                     </div>
                   </>
                 )}

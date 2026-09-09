@@ -4,7 +4,7 @@ import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
 import "../styles/InterviewSchedulePage.css";
 import { sendInterviewEmail, sendRescheduleEmail  } from '../services/emailService';
-import { CalendarMarkBlueIcon } from "../components/icons/CustomIcons";
+import { CalendarMarkBlueIcon, CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import mailblackLogo from '../assets/mail-black-icon.png';
 import calendarplumpLogo from '../assets/calendar-plump-icon.png';
@@ -31,6 +31,10 @@ export default function InterviewSchedulePage() {
 const [bulkSuccessMessage, setBulkSuccessMessage] = useState(null);
 const [scheduleSuccessMessage, setScheduleSuccessMessage] = useState(null);
 const [rescheduleSuccessMessage, setRescheduleSuccessMessage] = useState(null);
+
+const [confirmSuccessMessage, setConfirmSuccessMessage] = useState(null);
+const [isProcessing, setIsProcessing] = useState(false);
+
 
   const { jobId } = useParams();
   const navigate = useNavigate();
@@ -653,28 +657,43 @@ const handleAction = (interview, action) => {
 };
 
   // Confirm action
-  const confirmActionHandler = async () => {
-    if (!selectedInterview) return;
+ // Updated handler
+const confirmActionHandler = async () => {
+  if (!selectedInterview) return;
 
-    try {
-      if (confirmAction === 'complete') {
-        await markInterviewCompleted(selectedInterview.id);
-        alert('✅ Interview marked as completed!');
-      } else if (confirmAction === 'noshow') {
-        await markNoShow(selectedInterview.id);
-        alert('🚫 Applicant marked as NO SHOW. Application status changed to REJECTED.');
-      } else if (confirmAction === 'cancel') {
-        await cancelInterview(selectedInterview.id);
-        alert('❌ Interview cancelled. Applicant status changed to QUALIFIED.');
-      }
-      await loadData();
-      setShowConfirmModal(false);
-      setSelectedInterview(null);
-      setConfirmAction(null);
-    } catch (error) {
-      alert('Error updating interview: ' + error.message);
+  setIsProcessing(true);
+
+  try {
+    let message = '';
+    let showIcon = false;
+
+    if (confirmAction === 'complete') {
+      await markInterviewCompleted(selectedInterview.id);
+      message = `Interview marked as completed!`;
+      showIcon = true;
+    } else if (confirmAction === 'noshow') {
+      await markNoShow(selectedInterview.id);
+      message = `🚫 Applicant marked as NO SHOW. Application status changed to REJECTED.`;
+    } else if (confirmAction === 'cancel') {
+      await cancelInterview(selectedInterview.id);
+      message = `❌ Interview cancelled. Applicant status changed to QUALIFIED.`;
     }
-  };
+    
+    await loadData();
+    setShowConfirmModal(false);
+    setSelectedInterview(null);
+    setConfirmAction(null);
+    
+    setConfirmSuccessMessage({ text: message, showIcon });
+    setTimeout(() => setConfirmSuccessMessage(null), 5000);
+
+  } catch (error) {
+    alert('Error updating interview: ' + error.message);
+  } finally {
+    setIsProcessing(false);
+  }
+};
+
   // View candidate profile
   const viewCandidateProfile = (interview) => {
     setSelectedApplicant(interview);
@@ -966,7 +985,7 @@ const handleAction = (interview, action) => {
     <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px' }}>
       <div className="modal-header" style={{ borderBottom: 'none' }}>
         <h3 style={{ color: '#10b981', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          ✅ Success
+         <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} /> Success
         </h3>
         <button className="close-modal" onClick={() => setShowSuccessModal(false)}>×</button>
       </div>
@@ -1503,7 +1522,7 @@ const handleAction = (interview, action) => {
     bottom: '20px',
     right: '20px',
     padding: '12px 20px',
-    background: '#10b981',
+    background: '#0D9488',
     color: 'white',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -1513,7 +1532,7 @@ const handleAction = (interview, action) => {
     gap: '10px',
     animation: 'slideIn 0.3s ease'
   }}>
-    <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} />
+    <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
     <span>{bulkSuccessMessage}</span>
   </div>
 )}
@@ -1527,7 +1546,7 @@ const handleAction = (interview, action) => {
     bottom: '20px',
     right: '20px',
     padding: '12px 20px',
-    background: '#10b981',
+    background: '#0D9488',
     color: 'white',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -1537,7 +1556,7 @@ const handleAction = (interview, action) => {
     gap: '10px',
     animation: 'slideIn 0.3s ease'
   }}>
-    <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} />
+    <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
     <span>{scheduleSuccessMessage}</span>
   </div>
 )}
@@ -1550,7 +1569,7 @@ const handleAction = (interview, action) => {
     bottom: '20px',
     right: '20px',
     padding: '12px 20px',
-    background: '#10b981',
+    background: '#0D9488',
     color: 'white',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -1560,10 +1579,38 @@ const handleAction = (interview, action) => {
     gap: '10px',
     animation: 'slideIn 0.3s ease'
   }}>
-    <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} />
+    <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
     <span>{rescheduleSuccessMessage}</span>
   </div>
 )}
+
+
+{/* Confirm Action Success Notification */}
+{confirmSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    {confirmSuccessMessage.showIcon ? (
+      <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
+    ) : (
+      <span style={{ fontSize: '18px' }}></span>
+    )}
+    <span>{confirmSuccessMessage.text}</span>
+  </div>
+)}
+
 
       {/* Profile Modal */}
       {showProfileModal && selectedApplicant && (
@@ -1706,12 +1753,27 @@ const handleAction = (interview, action) => {
         >
           Cancel
         </button>
-        <button 
-          className={`btn-confirm ${confirmAction}`}
-          onClick={confirmActionHandler}
-        >
-          Confirm
-        </button>
+     <button 
+  className={`btn-confirm ${confirmAction}`}
+  onClick={confirmActionHandler}
+  disabled={isProcessing}
+  style={{
+    opacity: isProcessing ? 0.7 : 1,
+    cursor: isProcessing ? 'not-allowed' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px'
+  }}
+>
+  {isProcessing ? (
+    <>
+      <span className="spinner" />
+      Processing...
+    </>
+  ) : (
+    'Confirm'
+  )}
+</button>
       </div>
     </div>
   </div>

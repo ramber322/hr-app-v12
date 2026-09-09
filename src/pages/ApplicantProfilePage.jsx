@@ -4,8 +4,11 @@ import Navbar from "../components/Navbar";
 import { supabase } from '../lib/supabase';
 import { PatternBackground } from '../components/PatternBackground'; // ADD THIS IMPORT
 import Loader from '../components/Loader';
+import { CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
 
 function ApplicantProfilePage() {
+const [profileSuccessMessage, setProfileSuccessMessage] = useState(null);
+
   const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -57,50 +60,52 @@ function ApplicantProfilePage() {
     }
   };
 
-  const handleSave = async () => {
-    setIsEditing(false);
-    setLoading(true);
+ const handleSave = async () => {
+  setIsEditing(false);
+  setLoading(true);
 
-    try {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+  try {
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-      if (userError) throw userError;
-      if (!user) throw new Error("User not found");
+    if (userError) throw userError;
+    if (!user) throw new Error("User not found");
 
-      const { error: updateError } = await supabase.auth.updateUser({
-        data: {
-          first_name: profile.firstName,
-          surname: profile.surname,
-          phone_number: profile.phoneNumber,
-          age: profile.age,
-          gender: profile.gender,
-          address: profile.address
-        }
-      });
+    const { error: updateError } = await supabase.auth.updateUser({
+      data: {
+        first_name: profile.firstName,
+        surname: profile.surname,
+        phone_number: profile.phoneNumber,
+        age: profile.age,
+        gender: profile.gender,
+        address: profile.address
+      }
+    });
 
-      if (updateError) throw updateError;
+    if (updateError) throw updateError;
 
-      const { error: applicantError } = await supabase
-        .from('applicants')
-        .update({
-          full_name: `${profile.firstName} ${profile.surname}`,
-          phone: profile.phoneNumber,
-          email: profile.email,
-          address: profile.address
-        })
-        .eq('id', user.id);
+    const { error: applicantError } = await supabase
+      .from('applicants')
+      .update({
+        full_name: `${profile.firstName} ${profile.surname}`,
+        phone: profile.phoneNumber,
+        email: profile.email,
+        address: profile.address
+      })
+      .eq('id', user.id);
 
-      if (applicantError) throw applicantError;
+    if (applicantError) throw applicantError;
 
-      alert('Profile saved successfully!');
+    // Show success notification instead of alert
+    setProfileSuccessMessage(' Profile saved successfully!');
+    setTimeout(() => setProfileSuccessMessage(null), 5000);
 
-    } catch (error) {
-      console.error('Error saving profile:', error);
-      alert('Error saving profile: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (error) {
+    console.error('Error saving profile:', error);
+    alert('Error saving profile: ' + error.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const styles = `
     .profile-page {
@@ -368,6 +373,27 @@ function ApplicantProfilePage() {
           </div>
         </div>
       </div>
+      {/* Profile Save Success Notification */}
+{profileSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
+    <span>{profileSuccessMessage}</span>
+  </div>
+)}
     </>
   );
 }

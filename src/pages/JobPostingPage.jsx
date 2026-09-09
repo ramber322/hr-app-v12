@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import { createJobPosting, getJobPostings, updateJobStatuses } from "../services/jobService";
 import '/src/styles/JobPostingPage.css';
-import { CalendarIcon, CalendarColoredIcon, DocumentMonoIcon } from "../components/icons/CustomIcons";
+import { CalendarIcon, CalendarColoredIcon, EditJobIcon, TrashCircleIcon, MapNavigationIcon, CircularCheckSuccessIcon, CheckMarkSquareInterviewIcon, DocumentMonoIcon } from "../components/icons/CustomIcons";
 import calendarLogo from '../assets/icon-calendar.png';
 import Loader from '../components/Loader';
 import communityLogo from '../assets/community-icon.png';
 import calendarclockLogo from '../assets/calendar-clock-icon.png';
 import clipboardactivitylogLogo from '../assets/clipboard-activitylog-icon.png';
+import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
+import { supabase } from "../lib/supabase";
 
 // =========================
 // POSITION TITLES (Combined with Level)
@@ -201,6 +203,97 @@ const getTrainingLabel = (value) => {
 };
 
 export default function JobPostingPage() {
+  const [isEditing, setIsEditing] = useState(false);
+const [editFormData, setEditFormData] = useState(null);
+
+const handleEditJob = async () => {
+  try {
+    const statusToSave = editFormData.status || 'OPEN';
+    
+    // Use the updated salary grade and monthly salary from editFormData
+    const salaryGrade = editFormData.salary_grade || showDetails.salary_grade;
+    const monthlySalary = editFormData.monthly_salary || showDetails.monthly_salary;
+    
+    console.log('📤 Saving with SG:', salaryGrade, 'Salary:', monthlySalary);
+    
+    const { data, error } = await supabase
+      .from('job_postings')
+      .update({
+        position_title: editFormData.position_title,
+        place_of_assignment: editFormData.place_of_assignment,
+        item_no: editFormData.item_no,
+        closing_date: editFormData.closing_date,
+        status: statusToSave,
+        salary_grade: salaryGrade,
+        monthly_salary: monthlySalary,
+        required_education: editFormData.required_education,
+        required_eligibility: editFormData.required_eligibility,
+        required_training: editFormData.required_training,
+        required_work_experience: editFormData.required_work_experience,
+        instructions: editFormData.instructions,
+        required_docs: editFormData.required_docs,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', showDetails.id)
+      .select();
+
+    if (error) {
+      console.error('❌ Update error:', error);
+      throw error;
+    }
+
+    console.log('✅ Updated data:', data);
+    
+    // Close the confirmation modal
+    setShowEditConfirm(false);
+    
+    // Turn off loading state
+    setIsSaving(false);
+    
+    // Show success message
+    setEditSuccessMessage(' Job posting updated successfully!');
+    
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+      setEditSuccessMessage('');
+    }, 5000);
+    
+    // Close edit mode
+    setIsEditing(false);
+    setEditFormData(null);
+    
+    // Close the main modal
+    setShowDetails(null);
+    
+    // Refresh the job list WITHOUT page refresh
+    loadJobPostings();
+    
+  } catch (error) {
+    console.error('Error updating job:', error);
+    
+    // Close the confirmation modal on error too
+    setShowEditConfirm(false);
+    
+    // Turn off loading state
+    setIsSaving(false);
+    
+    alert('Error updating job: ' + error.message);
+  }
+};
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);  // ← ADD THIS
+
+const [isPosting, setIsPosting] = useState(false);
+const [isSaving, setIsSaving] = useState(false);
+const [isDeleting, setIsDeleting] = useState(false);
+
+const [jobPostSuccessMessage, setJobPostSuccessMessage] = useState(null);
+const [showConfirmPostModal, setShowConfirmPostModal] = useState(false);
+const [pendingJobData, setPendingJobData] = useState(null);
+
+const [editSuccessMessage, setEditSuccessMessage] = useState('');
+const [showEditConfirm, setShowEditConfirm] = useState(false);
+
   const navigate = useNavigate();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -250,63 +343,93 @@ export default function JobPostingPage() {
     setLoading(false);
   };
 
-  const handleAddJob = async () => {
-    if (!newJob.positionTitle || !newJob.placeOfAssignment || !newJob.closingDate) {
-      alert("Please fill in all required fields (*)");
-      return;
+const handleDeleteJob = async () => {
+  try {
+    // 1. Delete all applications for this job first
+    const { error: appsError } = await supabase
+      .from('applications')
+      .delete()
+      .eq('job_id', showDetails.id);
+
+    if (appsError) {
+      console.error('Error deleting applications:', appsError);
+      // Continue anyway - try to delete the job
     }
+
+    // 2. Delete the job
+    const { error } = await supabase
+      .from('job_postings')
+      .delete()
+      .eq('id', showDetails.id);
+
+    if (error) throw error;
+
+    // Close the confirmation modal
+    setShowDeleteConfirm(false);
     
-    const today = new Date().toISOString().split("T")[0];
-    const closingDate = newJob.closingDate;
-    const status = closingDate >= today ? "OPEN" : "CLOSED";
+    // Turn off loading state
+    setIsDeleting(false);
     
-    const jobToSave = {
-      ...newJob,
-      status: status,
-      monthlySalary: parseFloat(newJob.monthlySalary) || 0,
-      salaryGrade: parseInt(newJob.salaryGrade) || 0,
-      qualifications: {
-        education: newJob.qualifications.education,
-        eligibility: newJob.qualifications.eligibility,
-        training: newJob.qualifications.training,
-        workExperience: newJob.qualifications.workExperience,
-        competency: newJob.qualifications.competency || "N/A"
-      }
-    };
+    // Show success notification
+    setJobPostSuccessMessage(` Job "${showDetails.position_title}" deleted successfully!`);
     
-    const result = await createJobPosting(jobToSave);
+    // Auto-hide after 5 seconds
+    setTimeout(() => setJobPostSuccessMessage(null), 5000);
     
-    if (result.success) {
-      alert("Job posted successfully!");
-      setShowForm(false);
-      loadJobPostings();
-      setNewJob({
-        positionTitle: "",
-        placeOfAssignment: "",
-        itemNo: "",
-        salaryGrade: "",
-        monthlySalary: 0,
-        openingDate: new Date().toISOString().split("T")[0],
-        closingDate: "",
-        qualifications: {
-          education: 4,
-          eligibility: "professional",
-          training: 0,
-          workExperience: 0,
-          competency: ""
-        },
-        instructions: "",
-        requiredDocs: {
-          pds: true,
-          transcriptRecords: false,
-          performanceRating: false
-        }
-      });
-      setShowOtherInput(false);
-    } else {
-      alert("Error posting job: " + result.error);
+    // Close the main modal
+    setShowDetails(null);
+    
+    // Refresh the job list
+    loadJobPostings();
+
+  } catch (error) {
+    console.error('Error deleting job:', error);
+    
+    // Close the confirmation modal on error too
+    setShowDeleteConfirm(false);
+    
+    // Turn off loading state
+    setIsDeleting(false);
+    
+    alert('Error deleting job: ' + error.message);
+  }
+};
+
+ const handleAddJob = async () => {
+  const today = new Date().toISOString().split("T")[0];
+  const closingDate = pendingJobData.closingDate;
+  const status = closingDate >= today ? "OPEN" : "CLOSED";
+  
+  const jobToSave = {
+    ...pendingJobData,
+    status: status,
+    monthlySalary: parseFloat(pendingJobData.monthlySalary) || 0,
+    salaryGrade: parseInt(pendingJobData.salaryGrade) || 0,
+    qualifications: {
+      education: pendingJobData.qualifications.education,
+      eligibility: pendingJobData.qualifications.eligibility,
+      training: pendingJobData.qualifications.training,
+      workExperience: pendingJobData.qualifications.workExperience,
+      competency: pendingJobData.qualifications.competency || "N/A"
     }
   };
+  
+  const result = await createJobPosting(jobToSave);
+  
+  setIsPosting(false); // Turn off loading
+  
+  if (result.success) {
+    setJobPostSuccessMessage(` Job "${pendingJobData.positionTitle}" posted successfully!`);
+    setTimeout(() => setJobPostSuccessMessage(null), 5000);
+    
+    setShowConfirmPostModal(false);
+    setShowForm(false);
+    loadJobPostings();
+    // ... reset form
+  } else {
+    alert("Error posting job: " + result.error);
+  }
+};
 
   const toggleRequiredDoc = (docName) => {
     setNewJob({
@@ -680,118 +803,749 @@ export default function JobPostingPage() {
 
               <div className="modal-actions">
                 <button className="cancel-btn" onClick={() => setShowForm(false)}>Cancel</button>
-                <button className="save-btn" onClick={handleAddJob}>Post Job</button>
+               <button 
+  className="save-btn" 
+  onClick={() => {
+    // Validate first
+    if (!newJob.positionTitle || !newJob.placeOfAssignment || !newJob.closingDate) {
+      alert("Please fill in all required fields (*)");
+      return;
+    }
+    setPendingJobData(newJob);
+    setShowConfirmPostModal(true);
+  }}
+>
+  Post Job
+</button>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* View Job Details Modal */}
-      {showDetails && (
-        <div className="modal-overlay" onClick={() => setShowDetails(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h2>{showDetails.position_title}</h2>
-              <button className="close-modal" onClick={() => setShowDetails(null)}>×</button>
-            </div>
-            <div className="modal-body">
-              <div className="detail-section">
-                <h4>Job Details</h4>
-                <div className="detail-grid">
-                  <div>
-                    <span className="detail-label">Place of Assignment</span>
-                    <span className="detail-value">{showDetails.place_of_assignment}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Item No.</span>
-                    <span className="detail-value">{showDetails.item_no}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Salary Grade</span>
-                    <span className="detail-value">{showDetails.salary_grade}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Monthly Salary</span>
-                    <span className="detail-value">₱{showDetails.monthly_salary?.toLocaleString()}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Opening Date</span>
-                    <span className="detail-value">{showDetails.opening_date}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Closing Date</span>
-                    <span className="detail-value">{showDetails.closing_date}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Status</span>
-                    <span className="detail-value">{showDetails.status}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Total Applicants</span>
-                    <span className="detail-value">{showDetails.applicants_count || 0}</span>
-                  </div>
-                </div>
-              </div>
 
-              <div className="detail-section">
-                <h4>Qualifications</h4>
-                <div className="detail-grid">
-                  <div>
-                    <span className="detail-label">Education</span>
-                    <span className="detail-value">{getEducationLabel(showDetails.qualifications?.education)}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Eligibility</span>
-                    <span className="detail-value">{getEligibilityLabel(showDetails.qualifications?.eligibility)}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Training</span>
-                    <span className="detail-value">{getTrainingLabel(showDetails.qualifications?.training)}</span>
-                  </div>
-                  <div>
-                    <span className="detail-label">Work Experience</span>
-                    <span className="detail-value">{getExperienceLabel(showDetails.qualifications?.workExperience)}</span>
-                  </div>
-                </div>
-              </div>
+{/* Confirm Post Job Modal */}
+{showConfirmPostModal && pendingJobData && (
+  <div className="modal-overlay" onClick={() => setShowConfirmPostModal(false)}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()} style={{ 
+      width: '500px',
+      maxWidth: '90vw'
+    }}>
+      {/* Header */}
+      <div className="confirm-card-header" style={{ paddingBottom: '8px' }}>
+        <span className="confirm-icon" style={{ fontSize: '28px', marginLeft: '0px' }}><CheckMarkSquareInterviewIcon size={40}  color="#43ae4d"/></span>
+        <h3 style={{ fontSize: '20px', margin: '4px 0 0 0' }}>Confirm Job Posting</h3>
+      </div>
+      
+      {/* Body */}
+      <div className="confirm-card-body" style={{ padding: '8px 24px 16px 24px' }}>
+        <p style={{ marginBottom: '8px', fontSize: '15px' }}>
+          Are you sure you want to post this job?
+        </p>
+        <div style={{ 
+          background: '#f8fafc', 
+          padding: '12px 16px', 
+          borderRadius: '8px',
+          marginBottom: '12px'
+        }}>
+          <p style={{ fontWeight: '600', fontSize: '16px', color: '#1a1f36', marginBottom: '4px' }}>
+            {pendingJobData.positionTitle}
+          </p>
+         <p style={{ 
+  fontSize: '13px', 
+  color: '#6c757d', 
+  marginBottom: '2px',
+  display: 'flex',
+  alignItems: 'center',
+  gap: '4px'
+}}>
+  <MapNavigationIcon size={14} />
+  <span>{pendingJobData.placeOfAssignment}</span>
+</p>
+          <div style={{ 
+  display: 'flex', 
+  alignItems: 'center', 
+  gap: '8px',
+  marginTop: '8px',
+  fontSize: '13px', 
+  color: '#6c757d'
+}}>
+  <img 
+    src={calendarminimalLogo} 
+    alt="Calendar" 
+    style={{ 
+      width: '16px', 
+      height: '16px',
+      display: 'block',
+       filter: 'brightness(0) saturate(100%) invert(13%) sepia(97%) saturate(1600%) hue-rotate(190deg) brightness(92%) contrast(98%)'
+    }} 
+  />
+  <span>Closing: {pendingJobData.closingDate}</span>
+</div>
+        </div>
+        <p style={{ color: '#6c757d', fontSize: '14px', margin: 0 }}>
+          This action <strong>cannot be undone</strong>.
+        </p>
+      </div>
+      
+      {/* Footer */}
+      <div className="confirm-card-footer" style={{ 
+        margin: '0 -24px -24px -24px', 
+        padding: '16px 24px', 
+        borderRadius: '0 0 12px 12px',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '10px'
+      }}>
+        <button 
+          className="btn-cancel"
+          onClick={() => setShowConfirmPostModal(false)}
+          disabled={isPosting}
+          style={{
+            padding: '8px 24px',
+            background: '#D3F0F9',
+            color: '#1a3a5c',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: isPosting ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'background 0.2s ease',
+            opacity: isPosting ? 0.5 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isPosting) e.currentTarget.style.background = '#b8e4f0';
+          }}
+          onMouseLeave={(e) => {
+            if (!isPosting) e.currentTarget.style.background = '#D3F0F9';
+          }}
+        >
+          Cancel
+        </button>
+       <button 
+  className="btn-confirm"
+  onClick={() => {
+    setIsPosting(true);
+    handleAddJob();
+  }}
+  disabled={isPosting}
+  style={{
+    padding: '8px 24px',
+    background: isPosting ? '#0f766e' : '#0d9488',
+    color: 'white',
+    border: 'none',
+    borderRadius: '6px',
+    cursor: isPosting ? 'not-allowed' : 'pointer',
+    fontWeight: '500',
+    transition: 'background 0.2s ease',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    opacity: isPosting ? 0.7 : 1
+  }}
+  onMouseEnter={(e) => {
+    if (!isPosting) {
+      e.currentTarget.style.background = '#0f766e';
+    }
+  }}
+  onMouseLeave={(e) => {
+    if (!isPosting) {
+      e.currentTarget.style.background = '#0d9488';
+    }
+  }}
+>
+  {isPosting ? (
+    <>
+      <span className="spinner" />
+      Posting...
+    </>
+  ) : (
+    'Confirm'
+  )}
+</button>
+      </div>
+    </div>
+  </div>
+)}
 
-              <div className="detail-section">
-                <h4>Required Documents</h4>
-                <ul className="docs-list">
-                  {showDetails.required_docs?.pds && <li>✓ Personal Data Sheet (PDS)</li>}
-                  {showDetails.required_docs?.transcriptRecords && <li>✓ Transcript of Records</li>}
-                  {showDetails.required_docs?.performanceRating && <li>✓ Performance Rating</li>}
-                </ul>
-              </div>
+{/* Dynamic Success Notification */}
+{jobPostSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: jobPostSuccessMessage.includes('deleted') ? '#dc2626' : '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    {jobPostSuccessMessage.includes('deleted') ? (
+      <span style={{ fontSize: '18px' }}><TrashCircleIcon size = {29} /></span>
+    ) : (
+      <CircularCheckSuccessIcon size={19} style={{ color: 'white' }} />
+    )}
+    <span>{jobPostSuccessMessage}</span>
+  </div>
+)}
 
-              {showDetails.instructions && (
-                <div className="detail-section">
-                  <h4>Instructions / Remarks</h4>
-                  <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>{showDetails.instructions}</p>
-                </div>
-              )}
+{/* Edit Success Notification */}
+{editSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CircularCheckSuccessIcon size={19} style={{ color: 'white' }} />
+    <span>{editSuccessMessage}</span>
+  </div>
+)}
 
-              <div className="modal-actions" style={{ marginTop: 24 }}>
-                <button className="cancel-btn"  onClick={() => setShowDetails(null)}
-                 style={{ flex: 1, backgroundColor: '#D3F0F9', color: '1A3A5C' }}>
-                  Close
-                </button>
-                <button 
-                  className="view-candidates-btn" 
-                  onClick={() => {
-                    setShowDetails(null);
-                    navigate(`/hr/jobs/${showDetails.id}/candidates`);
-                  }}
-                  style={{ flex: 1 }}
+
+
+   {/* View Job Details Modal */}
+{showDetails && (
+  <div className="modal-overlay" onClick={() => {
+    if (!isEditing) setShowDetails(null);
+  }}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+      <div className="modal-header">
+        {isEditing ? (
+         <select 
+  value={editFormData?.position_title || ''}
+  onChange={(e) => {
+    const title = e.target.value;
+    // Get the Salary Grade and Monthly Salary based on the selected title
+    const sg = POSITION_SG_MAPPING[title] || "";
+    const salary = sg ? DBM_SALARY_TABLE[sg] || 0 : 0;
+    
+    setEditFormData({
+      ...editFormData, 
+      position_title: title,
+      salary_grade: sg,
+      monthly_salary: salary
+    });
+  }}
+  style={{ 
+    width: '100%', 
+    padding: '6px 10px', 
+    border: '1px solid #ddd', 
+    borderRadius: '4px',
+    fontSize: '14px',  // ← Reduced from 20px
+    fontWeight: '500', // ← Reduced from bold
+    height: '38px'     // ← Fixed height
+  }}>
+  <option value="">Select Position...</option>
+  {POSITION_TITLES.map(title => (
+    <option key={title} value={title}>{title}</option>
+  ))}
+</select>
+        ) : (
+          <h2>{showDetails.position_title}</h2>
+        )}
+        <button className="close-modal" onClick={() => {
+          if (!isEditing) setShowDetails(null);
+        }}>×</button>
+      </div>
+      
+      <div className="modal-body">
+        {/* Job Details - Editable */}
+        <div className="detail-section">
+          <h4>Job Details</h4>
+          <div className="detail-grid">
+            <div>
+              <span className="detail-label">Place of Assignment</span>
+              {isEditing ? (
+                <select 
+                  value={editFormData?.place_of_assignment || ''}
+                  onChange={(e) => setEditFormData({...editFormData, place_of_assignment: e.target.value})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
                 >
-                  <img src={communityLogo} alt="Community"  style={{ width: 16, height: 16, marginRight: 2, marginBottom: 2, display: 'inline-block', verticalAlign: 'middle', filter: 'brightness(0) saturate(100%) invert(25%) sepia(50%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}  className="community-icon" /> View All Candidates ({showDetails.applicants_count || 0})
-                </button>
-              </div>
+                  <option value="">Select Office...</option>
+                  {LGU_OFFICES.map(office => (
+                    <option key={office} value={office}>{office}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="detail-value">{showDetails.place_of_assignment}</span>
+              )}
+            </div>
+            <div>
+              <span className="detail-label">Item No.</span>
+              {isEditing ? (
+                <input 
+                  type="text" 
+                  value={editFormData?.item_no || ''}
+                  onChange={(e) => setEditFormData({...editFormData, item_no: e.target.value})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              ) : (
+                <span className="detail-value">{showDetails.item_no}</span>
+              )}
+            </div>
+           <div>
+  <span className="detail-label">Salary Grade</span>
+  <span style={{ 
+    display: 'block', 
+    padding: '6px', 
+    background: '#f3f4f6', 
+    borderRadius: '4px',
+    fontWeight: 'bold',
+    color: '#1a3a5c'
+  }}>
+    {editFormData?.salary_grade || showDetails.salary_grade} (Auto-set)
+  </span>
+</div>
+          <div>
+  <span className="detail-label">Monthly Salary</span>
+  <span style={{ 
+    display: 'block', 
+    padding: '6px', 
+    background: '#f3f4f6', 
+    borderRadius: '4px',
+    fontWeight: 'bold',
+    color: '#1a3a5c'
+  }}>
+    ₱{(editFormData?.monthly_salary || showDetails.monthly_salary)?.toLocaleString()} (Auto-set)
+  </span>
+</div>
+            <div>
+              <span className="detail-label">Closing Date</span>
+              {isEditing ? (
+                <input 
+                  type="date" 
+                  value={editFormData?.closing_date || ''}
+                  onChange={(e) => setEditFormData({...editFormData, closing_date: e.target.value})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                />
+              ) : (
+                <span className="detail-value">{showDetails.closing_date}</span>
+              )}
+            </div>
+            <div>
+              <span className="detail-label">Status</span>
+              {isEditing ? (
+             <select 
+  value={editFormData?.status || 'OPEN'}  // ← Add fallback here too
+  onChange={(e) => setEditFormData({...editFormData, status: e.target.value})}
+  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+>
+  <option value="OPEN">OPEN</option>
+  <option value="CLOSED">CLOSED</option>
+</select>
+              ) : (
+                <span className="detail-value">{showDetails.status}</span>
+              )}
             </div>
           </div>
         </div>
-      )}
+
+        {/* Qualifications - Editable */}
+        <div className="detail-section">
+          <h4>Qualifications</h4>
+          <div className="detail-grid">
+            <div>
+              <span className="detail-label">Education</span>
+              {isEditing ? (
+                <select 
+                  value={editFormData?.required_education || ''}
+                  onChange={(e) => setEditFormData({...editFormData, required_education: parseInt(e.target.value)})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {EDUCATION_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="detail-value">{getEducationLabel(showDetails.qualifications?.education)}</span>
+              )}
+            </div>
+            <div>
+              <span className="detail-label">Eligibility</span>
+              {isEditing ? (
+                <select 
+                  value={editFormData?.required_eligibility || ''}
+                  onChange={(e) => setEditFormData({...editFormData, required_eligibility: e.target.value})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {ELIGIBILITY_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="detail-value">{getEligibilityLabel(showDetails.qualifications?.eligibility)}</span>
+              )}
+            </div>
+            <div>
+              <span className="detail-label">Training</span>
+              {isEditing ? (
+                <select 
+                  value={editFormData?.required_training || ''}
+                  onChange={(e) => setEditFormData({...editFormData, required_training: parseInt(e.target.value)})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {TRAINING_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="detail-value">{getTrainingLabel(showDetails.qualifications?.training)}</span>
+              )}
+            </div>
+            <div>
+              <span className="detail-label">Work Experience</span>
+              {isEditing ? (
+                <select 
+                  value={editFormData?.required_work_experience || ''}
+                  onChange={(e) => setEditFormData({...editFormData, required_work_experience: parseInt(e.target.value)})}
+                  style={{ width: '100%', padding: '6px', border: '1px solid #ddd', borderRadius: '4px' }}
+                >
+                  {EXPERIENCE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className="detail-value">{getExperienceLabel(showDetails.qualifications?.workExperience)}</span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Instructions - Editable */}
+        {isEditing ? (
+          <div className="detail-section">
+            <h4>Instructions / Remarks</h4>
+            <textarea 
+              value={editFormData?.instructions || ''}
+              onChange={(e) => setEditFormData({...editFormData, instructions: e.target.value})}
+              rows="3"
+              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+        ) : (
+          showDetails.instructions && (
+            <div className="detail-section">
+              <h4>Instructions / Remarks</h4>
+              <p style={{ fontSize: 14, lineHeight: 1.5, margin: 0 }}>{showDetails.instructions}</p>
+            </div>
+          )
+        )}
+
+        {/* Modal Actions */}
+        <div className="modal-actions" style={{ marginTop: 24, display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {isEditing ? (
+            <>
+              <button 
+                className="cancel-btn" 
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditFormData(null);
+                }}
+                style={{ flex: 1, backgroundColor: '#f3f4f6', color: '#4a5568', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', minWidth: '100px' }}
+              >
+                Cancel Edit
+              </button>
+           <button 
+  className="save-btn" 
+  onClick={() => setShowEditConfirm(true)}  // Show confirmation first
+  style={{ flex: 1, backgroundColor: '#0d9488', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', minWidth: '100px' }}
+>
+  Save Changes
+</button>
+            </>
+          ) : (
+            <>
+              <button 
+                className="cancel-btn" 
+                onClick={() => setShowDetails(null)}
+                style={{ flex: 1, backgroundColor: '#D3F0F9', color: '#1A3A5C', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+              >
+                Close
+              </button>
+
+   <button 
+                className="delete-btn" 
+                onClick={() => setShowDeleteConfirm(true)}
+                style={{ 
+                  backgroundColor: '#dc2626', 
+                  color: 'white', 
+                  border: 'none', 
+                  padding: '10px 20px', 
+                  borderRadius: '6px', 
+                  display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+                  cursor: 'pointer', 
+                  fontWeight: '500',
+                  transition: 'background 0.2s ease'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = '#b91c1c'}
+                onMouseLeave={(e) => e.currentTarget.style.background = '#dc2626'}
+              >
+                 <TrashCircleIcon size={24} color="white" style = {{marginLeft: '43px' }}/> Delete
+              </button>
+
+
+              <button 
+                className="edit-btn" 
+                onClick={() => {
+                  setEditFormData({
+                    position_title: showDetails.position_title,
+                    place_of_assignment: showDetails.place_of_assignment,
+                    item_no: showDetails.item_no || '',
+                    closing_date: showDetails.closing_date,
+                    status: showDetails.status || 'OPEN',
+                    required_education: showDetails.qualifications?.education || '',
+                    required_eligibility: showDetails.qualifications?.eligibility || '',
+                    required_training: showDetails.qualifications?.training || '',
+                    required_work_experience: showDetails.qualifications?.workExperience || '',
+                    instructions: showDetails.instructions || '',
+                    required_docs: showDetails.required_docs || {}
+                  });
+                  setIsEditing(true);
+                }}
+                  style={{ 
+    flex: 1, 
+    backgroundColor: '#4f46e5', 
+    color: 'white', 
+    border: 'none', 
+    padding: '10px', 
+    borderRadius: '6px', 
+    cursor: 'pointer', 
+    fontWeight: '500',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '6px',
+    transition: 'background 0.2s ease'
+  }}
+  onMouseEnter={(e) => e.currentTarget.style.background = '#4338ca'}
+  onMouseLeave={(e) => e.currentTarget.style.background = '#4f46e5'}
+>
+  <EditJobIcon size={24} color="white" style = {{marginLeft: '-8px'}} />
+  Edit Job
+</button>
+             
+             
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+
+
+
+
+{/* Delete Confirmation Modal */}
+{showDeleteConfirm && (
+  <div className="modal-overlay" onClick={() => {
+    if (!isDeleting) setShowDeleteConfirm(false);
+  }}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
+      <div className="confirm-card-header">
+        <span className="confirm-icon" style={{ fontSize: '28px' }}>⚠️</span>
+        <h3>Delete Job Posting</h3>
+      </div>
+      <div className="confirm-card-body">
+        <p>Are you sure you want to delete this job posting?</p>
+        <p style={{ 
+          fontWeight: '600', 
+          fontSize: '16px', 
+          color: '#1a1f36',
+          marginTop: '8px'
+        }}>
+          {showDetails?.position_title}
+        </p>
+        <p style={{ color: '#6c757d', fontSize: '14px', marginTop: '8px' }}>
+          This action <strong>cannot be undone</strong>.
+        </p>
+      </div>
+      <div className="confirm-card-footer" style={{ margin: '0 -24px -24px -24px', padding: '16px 24px', borderRadius: '0 0 12px 12px' }}>
+        <button 
+          className="btn-cancel" 
+          onClick={() => setShowDeleteConfirm(false)}
+          disabled={isDeleting}
+          style={{
+            padding: '8px 24px',
+            background: '#D3F0F9',
+            color: '#1a3a5c',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: isDeleting ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'background 0.2s ease',
+            opacity: isDeleting ? 0.5 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isDeleting) e.currentTarget.style.background = '#b8e4f0';
+          }}
+          onMouseLeave={(e) => {
+            if (!isDeleting) e.currentTarget.style.background = '#D3F0F9';
+          }}
+        >
+          Cancel
+        </button>
+        <button 
+          className="btn-confirm" 
+          onClick={() => {
+            setIsDeleting(true);
+            handleDeleteJob();
+          }}
+          disabled={isDeleting}
+          style={{
+            padding: '8px 24px',
+            background: isDeleting ? '#991b1b' : '#dc2626',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: isDeleting ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            opacity: isDeleting ? 0.7 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isDeleting) e.currentTarget.style.background = '#b91c1c';
+          }}
+          onMouseLeave={(e) => {
+            if (!isDeleting) e.currentTarget.style.background = '#dc2626';
+          }}
+        >
+          {isDeleting ? (
+            <>
+              <span className="spinner" />
+              Deleting...
+            </>
+          ) : (
+            'Delete'
+          )}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+
+
+{/* Edit Confirmation Modal */}
+{showEditConfirm && (
+  <div className="modal-overlay" onClick={() => {
+    if (!isSaving) setShowEditConfirm(false);
+  }}>
+    <div className="confirm-card" onClick={(e) => e.stopPropagation()}>
+      <div className="confirm-card-header">
+        <span className="confirm-icon" style={{ fontSize: '28px' }}><CheckMarkSquareInterviewIcon size={40}  color="#43ae4d"/></span>
+        <h3>Confirm Changes</h3>
+      </div>
+      <div className="confirm-card-body">
+        <p>Are you sure you want to save these changes?</p>
+        <p style={{ 
+          fontWeight: '600', 
+          fontSize: '16px', 
+          color: '#1a1f36',
+          marginTop: '8px'
+        }}>
+          {editFormData?.position_title || showDetails?.position_title}
+        </p>
+        <p style={{ color: '#6c757d', fontSize: '14px', marginTop: '8px' }}>
+          This will update the job posting immediately.
+        </p>
+      </div>
+      <div className="confirm-card-footer" style={{ margin: '0 -24px -24px -24px', padding: '16px 24px', borderRadius: '0 0 12px 12px' }}>
+       <button 
+          className="btn-cancel"
+          onClick={() => setShowEditConfirm(false)}
+          disabled={isSaving}
+          style={{
+            padding: '8px 24px',
+            background: '#D3F0F9',
+            color: '#1a3a5c',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: isSaving ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'background 0.2s ease',
+            opacity: isSaving ? 0.5 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isSaving) e.currentTarget.style.background = '#b8e4f0';
+          }}
+          onMouseLeave={(e) => {
+            if (!isSaving) e.currentTarget.style.background = '#D3F0F9';
+          }}
+        >
+          Cancel
+        </button>
+        <button 
+          className="btn-confirm"
+          onClick={() => {
+            // Don't close modal here - let handleEditJob close it after save
+            setIsSaving(true);
+            handleEditJob();
+          }}
+          disabled={isSaving}
+          style={{
+            padding: '8px 24px',
+            background: isSaving ? '#0f766e' : '#0d9488',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: isSaving ? 'not-allowed' : 'pointer',
+            fontWeight: '500',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            opacity: isSaving ? 0.7 : 1
+          }}
+          onMouseEnter={(e) => {
+            if (!isSaving) {
+              e.currentTarget.style.background = '#0f766e';
+            }
+          }}
+          onMouseLeave={(e) => {
+            if (!isSaving) {
+              e.currentTarget.style.background = '#0d9488';
+            }
+          }}
+        >
+          {isSaving ? (
+            <>
+              <span className="spinner" />
+              Saving...
+            </>
+          ) : (
+            'Confirm'
+          )}
+        </button>
+      </div>
+    </div>
+  </div>
+)}
     </>
   );
 }

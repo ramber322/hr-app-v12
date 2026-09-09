@@ -6,7 +6,7 @@ import Navbar from "../components/Navbar";
 import { notifyStatusChange } from '../services/notificationService';
 import { supabase } from "../lib/supabase";
 import "../styles/JobCandidatesPage.css";
-import { DocumentCheckIcon, CheckMarkSquareInterviewIcon, CheckInterviewIconDashboard,  PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
+import { DocumentCheckIcon, CheckMarkSquareInterviewIcon, CircularCheckSuccessIcon, CheckInterviewIconDashboard,  PdfIcon, CheckboxMassIcon, ReverseTabArrowIcon, JusticePlumpIcon, CheckSquareIcon, MagnifyingGlassPlumpIcon } from "../components/icons/CustomIcons";
 import JobCandidateButton from "../components/JobCandidateButton";
 import communityLogo from '../assets/community3-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
@@ -1578,7 +1578,11 @@ setBulkUpdating(false);
         </div>
       )}
 
-{/* Bulk Update Success Notification */} {bulkUpdateSuccessMessage && ( <div style={{ position: 'fixed', bottom: '20px', right: '20px', padding: '12px 20px', background: '#10b981', color: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, display: 'flex', alignItems: 'center', gap: '10px', animation: 'slideIn 0.3s ease' }}> <CheckMarkSquareInterviewIcon size={18} style={{ color: 'white' }} /> <span>{bulkUpdateSuccessMessage}</span> </div> )}
+{/* Bulk Update Success Notification */} {bulkUpdateSuccessMessage && 
+( <div style={{ position: 'fixed', bottom: '20px', right: '20px', padding: '12px 20px', background: '#0D9488',
+ color: 'white', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 9999, display: 'flex',
+  alignItems: 'center', gap: '10px', animation: 'slideIn 0.3s ease' }}> <CircularCheckSuccessIcon size={19}
+   style={{ color: 'white' }} /> <span>{bulkUpdateSuccessMessage}</span> </div> )}
 
       {/* Application Details Modal */}
       {showDetailsModal && selectedApplication && (

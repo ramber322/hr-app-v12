@@ -6,7 +6,7 @@ import "../styles/MyApplicationsPage.css";
 import calendarLogo from '../assets/icon-calendar.png';
 import locationLogo from '../assets/icon-location.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
-import { ApplicantCheckboxIcon } from "../components/icons/CustomIcons";
+import { ApplicantCheckboxIcon, CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
 export default function MyApplicationsPage() {
@@ -619,7 +619,7 @@ const handleWithdraw = async (application) => {
     bottom: '20px',
     right: '20px',
     padding: '12px 20px',
-    background: '#10b981',
+    background: '#0D9488',
     color: 'white',
     borderRadius: '8px',
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
@@ -628,7 +628,7 @@ const handleWithdraw = async (application) => {
     alignItems: 'center',
     gap: '10px'
   }}>
-    <ApplicantCheckboxIcon size={22} style={{ color: 'white' }} />
+    <CircularCheckSuccessIcon size={22} style={{ color: 'white' }} />
     {successMessage}
   </div>
 )}
