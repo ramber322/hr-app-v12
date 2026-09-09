@@ -91,18 +91,7 @@ export const LogoutIcon = ({ size = 20, color = "currentColor", className = "" }
   </svg>
 );
 
-export const ActivityLogIcon = ({ size = 20, color = "currentColor", className = "" }) => (
-  <svg 
-    xmlns="http://www.w3.org/2000/svg" 
-    viewBox="0 0 640 640" 
-    width={size} 
-    height={size} 
-    fill={color}
-    className={className}
-  >
-    <path d="M512 256L448 256L448 384L320 384L320 512L128 512L128 486.4L294.4 486.4L294.4 358.4L422.4 358.4L422.4 230.4L512 230.4L512 256zM486.4 294.4L486.4 422.4L358.4 422.4L358.4 550.4L192 550.4L192 576L384 576L384 448L512 448L512 294.4L486.4 294.4zM512 486.4L422.4 486.4L422.4 576L448 576L448 512L512 512L512 486.4zM128 64L128 448L256 448L256 320L384 320L384 192L512 192L512 64L128 64z"/>
-  </svg>
-);
+
 
 export const ApplicationsIcon = ({ size = 20, color = "currentColor", className = "" }) => (
   <svg 
@@ -1456,6 +1445,28 @@ export function EditJobIcon({ size = 24, className = "", color = "white", style 
         strokeWidth="2"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
+
+
+export function BulletedListIcon({ size = 24, className = "", color = "white", style = {} }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      className={className}
+      style={{ color: color, ...style }}
+    >
+      <path 
+        fillRule="evenodd" 
+        clipRule="evenodd" 
+        d="M6.25 7C6.25 7.69036 5.69036 8.25 5 8.25C4.30964 8.25 3.75 7.69036 3.75 7C3.75 6.30964 4.30964 5.75 5 5.75C5.69036 5.75 6.25 6.30964 6.25 7ZM9 6C8.44771 6 8 6.44772 8 7C8 7.55228 8.44771 8 9 8H19C19.5523 8 20 7.55228 20 7C20 6.44772 19.5523 6 19 6H9ZM9 11C8.44771 11 8 11.4477 8 12C8 12.5523 8.44771 13 9 13H19C19.5523 13 20 12.5523 20 12C20 11.4477 19.5523 11 19 11H9ZM9 16C8.44771 16 8 16.4477 8 17C8 17.5523 8.44771 18 9 18H19C19.5523 18 20 17.5523 20 17C20 16.4477 19.5523 16 19 16H9ZM5 13.25C5.69036 13.25 6.25 12.6904 6.25 12C6.25 11.3096 5.69036 10.75 5 10.75C4.30964 10.75 3.75 11.3096 3.75 12C3.75 12.6904 4.30964 13.25 5 13.25ZM5 18.25C5.69036 18.25 6.25 17.6904 6.25 17C6.25 16.3096 5.69036 15.75 5 15.75C4.30964 15.75 3.75 16.3096 3.75 17C3.75 17.6904 4.30964 18.25 5 18.25Z" 
+        fill={color}
       />
     </svg>
   );

@@ -10,7 +10,7 @@ import {
   ReportsIcon,
   ProfileIcon,
   LogoutIcon,
-  ActivityLogIcon,
+  BulletedListIcon,
   ApplicationsIcon
 } from './icons/CustomIcons';
 import "../styles/Navbar.css";
@@ -205,7 +205,7 @@ function Navbar({ userRole = 'applicant' }) {
                     setDropdownOpen(false);
                     setMobileMenuOpen(false);
                   }}>
-                    <span><ActivityLogIcon /></span> Activity Log
+                  <span> <BulletedListIcon size={20} color="#1e293b" /></span> Activity Log
                   </div>
                 )}
                 
