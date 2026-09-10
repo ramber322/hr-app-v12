@@ -4,6 +4,7 @@ import { supabase } from "../lib/supabase";
 import Navbar from "../components/Navbar";
 import "../styles/InterviewSchedulePage.css";
 import { sendInterviewEmail, sendRescheduleEmail  } from '../services/emailService';
+import {   sendSMS, sendBulkSMS, generateInterviewSMSTemplate, isValidPhilippineNumber, formatPhoneNumber } from '../services/smsService';
 import {CircularCheckSuccessIcon } from "../components/icons/CustomIcons";
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import mailblackLogo from '../assets/mail-black-icon.png';
@@ -11,7 +12,7 @@ import calendarplumpLogo from '../assets/calendar-plump-icon.png';
 import locationplumpLogo from '../assets/location-plump-icon.png';
 import noteplumpLogo from '../assets/note-plump-icon.png';
 import phoneLogo from '../assets/phone-icon.png';
-import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon,
+import {  StatusIcon, AlarmClockIcon, ReverseTabArrowIcon, TextBubbleIcon,
   UserBookIcon, CalendarRefreshIcon,
 CheckMarkSquareInterviewIcon
     } from "../components/icons/CustomIcons";
@@ -27,6 +28,134 @@ import {
 } from "../services/interviewService";
 
 export default function InterviewSchedulePage() {
+//SMS AREA  
+// SMS states
+const [showSMSModal, setShowSMSModal] = useState(false);
+const [smsTemplate, setSmsTemplate] = useState('');
+const [sendingSMS, setSendingSMS] = useState(false);
+const [smsSuccessMessage, setSmsSuccessMessage] = useState(null);
+const [smsError, setSmsError] = useState(null);
+//END SMS STATES
+
+// Open SMS modal
+const openSMSModal = () => {
+  if (selectedApplicants.length === 0) {
+    alert('Please select at least one applicant to send SMS.');
+    return;
+  }
+  
+  // Check that at least one selected applicant has a scheduled interview
+  const selectedInterviews = interviews.filter(i => selectedApplicants.includes(i.id));
+  const hasScheduled = selectedInterviews.some(i => i.scheduled_date);
+  
+  if (!hasScheduled) {
+    alert('Please select applicants with scheduled interviews (not TBD).');
+    return;
+  }
+  
+  const jobTitle = job?.position_title || 'the position';
+  
+  // ✅ Use {Date} and {Time} placeholders so each applicant gets their own
+  setSmsTemplate(
+    `Hi {Name}! You have a scheduled appointment interview on {Date} at {Time} for ${jobTitle}. For more info, please read your gmail inbox.`
+  );
+  setSmsError(null);
+  setShowSMSModal(true);
+};
+
+// Handle bulk SMS send
+const handleBulkSMS = async () => {
+  setSendingSMS(true);
+  setSmsError(null);
+  
+  try {
+    // Get selected applicants' info
+    const selectedData = interviews.filter(i => selectedApplicants.includes(i.id));
+    
+    // Build recipients with phone validation
+    const recipients = [];
+    const invalidNumbers = [];
+    const noPhoneNumbers = [];
+    
+    for (const interview of selectedData) {
+      const phone = getApplicantPhone(interview);
+      const name = getApplicantName(interview);
+      
+      if (!phone || phone === 'N/A' || phone === 'No phone') {
+        noPhoneNumbers.push(name);
+        continue;
+      }
+      
+      const formatted = formatPhoneNumber(phone);
+      
+      if (!isValidPhilippineNumber(formatted)) {
+        invalidNumbers.push(`${name} (${phone})`);
+        continue;
+      }
+      
+      recipients.push({ name, phone: formatted, interview });
+    }
+    
+    if (recipients.length === 0) {
+      setSmsError(
+        `No valid phone numbers found.\n` +
+        (noPhoneNumbers.length > 0 ? `Missing: ${noPhoneNumbers.join(', ')}\n` : '') +
+        (invalidNumbers.length > 0 ? `Invalid: ${invalidNumbers.join(', ')}` : '')
+      );
+      setSendingSMS(false);
+      return;
+    }
+    
+    // Send SMS to each recipient with personalized date/time
+    const results = [];
+    for (const recipient of recipients) {
+      const interview = recipient.interview;
+      const date = formatDate(interview.scheduled_date);
+      const time = formatTime(interview.scheduled_date);
+      
+      // Use template but replace with this applicant's actual date/time
+      const personalizedMessage = smsTemplate
+        .replace(/\{Name\}/g, recipient.name.split(' ')[0]) // first name only
+        .replace(/\{Date\}/g, date)
+        .replace(/\{Time\}/g, time);
+      
+      const result = await sendSMS(recipient.phone, personalizedMessage);
+      results.push({
+        name: recipient.name,
+        phone: recipient.phone,
+        success: result.success,
+        error: result.error,
+      });
+    }
+    
+    const smsSent = results.filter(r => r.success).length;
+    const smsFailed = results.filter(r => !r.success).length;
+    
+    setShowSMSModal(false);
+    
+    let message = ` ${smsSent} SMS sent successfully!`;
+    if (smsFailed > 0) {
+      message += ` ⚠️ ${smsFailed} failed`;
+    }
+    if (invalidNumbers.length > 0) {
+      message += ` (${invalidNumbers.length} invalid)`;
+    }
+    
+    setSmsSuccessMessage(message);
+    setTimeout(() => setSmsSuccessMessage(null), 6000);
+    
+    setSelectedApplicants([]);
+    
+  } catch (error) {
+    console.error('Error sending SMS:', error);
+    setSmsError('Error sending SMS: ' + error.message);
+  } finally {
+    setSendingSMS(false);
+  }
+};
+
+//END SMS AREA
+
 const [bulkSuccessMessage, setBulkSuccessMessage] = useState(null);
 const [scheduleSuccessMessage, setScheduleSuccessMessage] = useState(null);
 const [rescheduleSuccessMessage, setRescheduleSuccessMessage] = useState(null);
@@ -324,11 +453,12 @@ const handleBulkReschedule = async () => {
   };
 
   // Helper to get applicant phone from either nested or flat structure
-  const getApplicantPhone = (interview) => {
-    return interview.applicants?.phone || 
-           interview.applicant_phone || 
-           'N/A';
-  };
+ const getApplicantPhone = (interview) => {
+  return interview.applicants?.phone || 
+         interview.applicants?.metadata?.phonenumber || 
+         interview.applicant_phone || 
+         'N/A';
+};
 
   // Helper to get AI score from either nested or flat structure
   const getAIScore = (interview) => {
@@ -1231,11 +1361,45 @@ const confirmActionHandler = async () => {
       
       {/* Bottom section with Reschedule Button */}
 <div style={{ 
-  display: 'flex', 
+  display: 'flex',
+  gap: '6px', 
   justifyContent: 'flex-end',  // ← Pushes content to the right
     padding: '10px 0',  // ← REDUCED from 10px to 4px
   marginTop: '-16px'  // ← ADD: Pull it up closer to the table
 }}>
+
+{/* NEW: Bulk SMS Button */}
+  <button 
+    className="btn-sms-batch"
+    onClick={openSMSModal}
+    disabled={selectedApplicants.length === 0}
+    style={{
+      cursor: selectedApplicants.length === 0 ? 'not-allowed' : 'pointer',
+      opacity: selectedApplicants.length === 0 ? 0.5 : 1,
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '6px',
+      padding: '10px 16px',
+      background: '#4F46E5',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      fontWeight: '600',
+      fontSize: '14px'
+    }}
+    onMouseEnter={(e) => {
+      if (selectedApplicants.length > 0) e.currentTarget.style.background = '#4338ca';
+    }}
+    onMouseLeave={(e) => {
+      if (selectedApplicants.length > 0) e.currentTarget.style.background = '#4F46E5';
+    }}
+  >
+      <TextBubbleIcon size={18} color="white" />  Send SMS ({selectedApplicants.length})
+  </button>
+
+
+
+
           {/* NEW: Bulk Reschedule Button */}
   <button 
     className="btn-reschedule-batch"
@@ -1252,7 +1416,145 @@ const confirmActionHandler = async () => {
     Reschedule Selected ({selectedApplicants.length})
   </button>
 
+
 </div>
+
+
+
+{/* SMS Modal */}
+{showSMSModal && (
+  <div className="modal-overlay" onClick={() => {
+    if (!sendingSMS) setShowSMSModal(false);
+  }}>
+    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
+      <div className="modal-header">
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <TextBubbleIcon size={28} color="#1e293b" style = {{marginRight: '4px'}} /> Send SMS to Selected Applicants
+        </h3>
+        <button 
+          className="close-modal" 
+          onClick={() => setShowSMSModal(false)}
+          disabled={sendingSMS}
+        >
+          ×
+        </button>
+      </div>
+      <div className="modal-body">
+        <p className="schedule-info">
+          Sending SMS to <strong>{selectedApplicants.length}</strong> applicant(s)
+        </p>
+
+        {/* Show phone number validation summary */}
+        <div style={{
+          background: '#f8f9fa',
+          padding: '12px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          fontSize: '13px',
+          maxHeight: '120px',
+          overflowY: 'auto'
+        }}>
+          <strong style={{ display: 'block', marginBottom: '8px' }}>Recipients:</strong>
+          {interviews
+            .filter(i => selectedApplicants.includes(i.id))
+            .map((interview) => {
+              const phone = getApplicantPhone(interview);
+              const formatted = formatPhoneNumber(phone);
+              const isValid = isValidPhilippineNumber(formatted);
+              
+              return (
+                <div key={interview.id} style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between',
+                  padding: '4px 0',
+                  color: isValid ? '#2E7D32' : '#dc2626'
+                }}>
+                  <span>{getApplicantName(interview)}</span>
+                  <span style={{ fontFamily: 'monospace' }}>
+                    {isValid ? '✓ ' : '✗ '}{formatted || 'No phone'}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+
+        <div className="form-group">
+          <label>Message *</label>
+          <textarea
+            value={smsTemplate}
+            onChange={(e) => setSmsTemplate(e.target.value)}
+            rows="5"
+            className="form-textarea"
+            placeholder="Enter your message..."
+            disabled={sendingSMS}
+          />
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#6c757d', 
+            marginTop: '4px',
+            display: 'flex',
+            justifyContent: 'space-between'
+          }}>
+            <span>{smsTemplate.length} characters</span>
+            <span>{Math.ceil(smsTemplate.length / 160)} SMS</span>
+          </div>
+        </div>
+
+        {smsError && (
+          <div style={{
+            background: '#fee2e2',
+            color: '#dc2626',
+            padding: '10px 12px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            marginTop: '12px',
+            whiteSpace: 'pre-line'
+          }}>
+            ⚠️ {smsError}
+          </div>
+        )}
+
+        <div className="modal-actions">
+          <button 
+            className="btn-secondary"
+            onClick={() => setShowSMSModal(false)}
+            disabled={sendingSMS}
+          >
+            Cancel
+          </button>
+          <button 
+            className="btn-primary"
+            onClick={handleBulkSMS}
+            disabled={!smsTemplate.trim() || sendingSMS}
+            style={{
+              background: sendingSMS ? '#4338ca' : '#4F46E5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: sendingSMS ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              padding: '10px 20px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: sendingSMS ? 0.7 : 1
+            }}
+          >
+            {sendingSMS ? (
+              <>
+                <span className="spinner" />
+                Sending...
+              </>
+            ) : (
+              <><TextBubbleIcon size={18} color="white" style = {{marginLeft: '-6px'}} /> Send All ({selectedApplicants.length})</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
 
 
       {/* Schedule Modal */}
@@ -1376,6 +1678,33 @@ const confirmActionHandler = async () => {
           </div>
         </div>
       )}
+
+
+
+{/* SMS Success Notification */}
+{smsSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
+    <span>{smsSuccessMessage}</span>
+  </div>
+)}
+
+
+
 
       {/* Reschedule Modal */}
       {showRescheduleModal && rescheduleData && (

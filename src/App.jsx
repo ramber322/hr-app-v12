@@ -8,7 +8,7 @@ import LoginPage from "./pages/LoginPage";
 import SignUpPage from "./pages/SignUpPage";
 import SendSmsTest from './pages/SendSmsTest';
 import EmailTest from './pages/EmailTest';
-import ModalPreview from './pages/ModalPreview';
+
 // HR Pages
 import DashboardPage from "./pages/DashboardPage";
 import JobPostingPage from "./pages/JobPostingPage";
@@ -16,7 +16,7 @@ import CandidatePage from "./pages/CandidatePage";
 import JobCandidatesPage from "./pages/JobCandidatesPage";
 import ReportsPage from "./pages/ReportsPage";
 import ActivityLogPage from "./pages/ActivityLogPage";
-import InterviewSchedulePage from "./pages/InterviewSchedulePage"; // <-- ADD THIS
+import InterviewSchedulePage from "./pages/InterviewSchedulePage";
 
 // Applicant Pages
 import DashboardApplicantPage from "./pages/DashboardApplicantPage";
@@ -110,13 +110,7 @@ function App() {
             </PublicRoute> }
   />      
 
-{/* ==================== MODAL TEST ROUTE ==================== */}
-  <Route 
-    path="/test-modal" 
-     element = { <PublicRoute>
-              <ModalPreview  />
-            </PublicRoute> }
-  />      
+    
         <Route 
           path="/signup" 
           element={

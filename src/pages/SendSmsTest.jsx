@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 function SendSmsTest() {
-  const [deviceId, setDeviceId] = useState('6a9a699cccb6c727096c3a3b');
+  const [deviceId, setDeviceId] = useState('6a9a699cccb6c727096c3a3b0');
   const [recipient, setRecipient] = useState('');
   const [message, setMessage] = useState('You have an scheduled appointment on Sep 24');
   const [isLoading, setIsLoading] = useState(false);
@@ -14,7 +14,7 @@ function SendSmsTest() {
     setError(null);
     setResponse(null);
 
-    const apiKey = "txb_yztKqRe8CHYVTMl6Bop8bFLItu5TZbLw"
+    const apiKey = "txb_yztKqRe8CHYVTMl6Bop8bFLItu5TZbLw0"
 
     try {
       const res = await fetch('https://api.textbee.dev/api/v1/gateway/send-sms', {
