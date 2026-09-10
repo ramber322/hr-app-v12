@@ -378,9 +378,10 @@ const statusChartData = {
       legend: {
         position: 'bottom',
         labels: {
-          usePointStyle: true,
-          boxWidth: 8,
-          padding: 15,
+          usePointStyle: false,
+          boxWidth: 12,             
+        boxHeight: 12,           
+        padding: 15,        
         },
       },
     },
