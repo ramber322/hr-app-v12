@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import chrmoSeal from '../assets/chrmo-official-seal.png';
 import { supabase } from "../lib/supabase";
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
@@ -34,6 +35,8 @@ ChartJS.register(
 );
 
 export default function ReportsPage() {
+  const [topPositions, setTopPositions] = useState([]);
+
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [job, setJob] = useState(null);
@@ -137,6 +140,20 @@ export default function ReportsPage() {
         }
       });
 
+// 5.5 Top Applied Positions
+const positionCount = {};
+applications.forEach(app => {
+  const title = app.job_postings?.position_title || 'Unknown';
+  positionCount[title] = (positionCount[title] || 0) + 1;
+});
+
+const topPositionsData = Object.entries(positionCount)
+  .sort((a, b) => b[1] - a[1])
+  .slice(0, 5)
+  .map(([title, count]) => ({ title, count }));
+
+setTopPositions(topPositionsData);
+
       // 6. Get unique departments for filter
       const uniqueDepts = [...new Set(applications.map(app => app.job_postings?.place_of_assignment).filter(Boolean))];
       setDepartments(uniqueDepts);
@@ -164,69 +181,121 @@ export default function ReportsPage() {
   // =============================================
   // EXPORT TO PDF
   // =============================================
-  const exportPDF = () => {
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
+  const exportPDF = async () => {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 20;
 
-    // Header
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 25, { align: 'center' });
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'normal');
-    doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 33, { align: 'center' });
-
-    doc.setDrawColor(100);
-    doc.line(margin, 38, pageWidth - margin, 38);
-
-    // Title
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('RECRUITMENT REPORT', pageWidth / 2, 48, { align: 'center' });
-
-    const today = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+  // 🆕 Seal (top-right)
+  try {
+    const response = await fetch(chrmoSeal);
+    const blob = await response.blob();
+    const base64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
     });
 
-    doc.setFontSize(11);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Date Generated: ${today}`, margin, 60);
+    const sealSize = 22;
+    const sealX = pageWidth - margin - sealSize; // right-aligned
+    doc.addImage(base64, 'PNG', sealX, 12, sealSize, sealSize);
+  } catch (err) {
+    console.warn('Seal failed to load:', err);
+  }
 
-    // Summary Stats
-    const statsData = [
-      ['Total Jobs', reports.totalJobs],
-      ['Total Applications', reports.totalApplications],
-      ['Total Hired', reports.totalHired],
-      ['Open Jobs', reports.openJobs],
-    ];
+  // Header
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 25, { align: 'center' });
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
+  doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 33, { align: 'center' });
 
-    autoTable(doc, {
-      startY: 68,
-      head: [['Metric', 'Value']],
-      body: statsData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [43, 108, 176],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-      },
-      margin: { left: margin, right: margin },
-    });
+  doc.setDrawColor(100);
+  doc.line(margin, 38, pageWidth - margin, 38);
 
-    // Status Breakdown
-    const statusData = Object.entries(reports.statusBreakdown).map(([status, count]) => [
-      status,
-      count,
-    ]);
+  // Title
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RECRUITMENT REPORT', pageWidth / 2, 48, { align: 'center' });
 
+  const today = new Date().toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  });
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Date Generated: ${today}`, margin, 60);
+
+  // Summary Stats
+  const statsData = [
+    ['Total Jobs', reports.totalJobs],
+    ['Total Applications', reports.totalApplications],
+    ['Total Hired', reports.totalHired],
+    ['Open Jobs', reports.openJobs],
+  ];
+
+  autoTable(doc, {
+    startY: 68,
+    head: [['Metric', 'Value']],
+    body: statsData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [43, 108, 176],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  // Status Breakdown
+  const statusData = Object.entries(reports.statusBreakdown).map(([status, count]) => [
+    status,
+    count,
+  ]);
+
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 10,
+    head: [['Status', 'Count']],
+    body: statusData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [43, 108, 176],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  // Department Breakdown
+  const deptData = reports.applicationsByDepartment.map(d => [
+    d.department,
+    d.count,
+  ]);
+
+  autoTable(doc, {
+    startY: doc.lastAutoTable.finalY + 10,
+    head: [['Department', 'Applications']],
+    body: deptData,
+    theme: 'striped',
+    headStyles: {
+      fillColor: [43, 108, 176],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+    },
+    margin: { left: margin, right: margin },
+  });
+
+  // Top Applied Positions
+  if (topPositions.length > 0) {
+    const posData = topPositions.map(p => [p.title, p.count]);
     autoTable(doc, {
       startY: doc.lastAutoTable.finalY + 10,
-      head: [['Status', 'Count']],
-      body: statusData,
+      head: [['Top Position', 'Applications']],
+      body: posData,
       theme: 'striped',
       headStyles: {
         fillColor: [43, 108, 176],
@@ -235,28 +304,27 @@ export default function ReportsPage() {
       },
       margin: { left: margin, right: margin },
     });
+  }
 
-    // Department Breakdown
-    const deptData = reports.applicationsByDepartment.map(d => [
-      d.department,
-      d.count,
-    ]);
+  // 🆕 Footer: page numbers only
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    const pageHeight = doc.internal.pageSize.getHeight();
 
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: [['Department', 'Applications']],
-      body: deptData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [43, 108, 176],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-      },
-      margin: { left: margin, right: margin },
-    });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(150);
+    doc.text(
+      `Page ${i} of ${pageCount}`,
+      pageWidth / 2,
+      pageHeight - 10,
+      { align: 'center' }
+    );
+  }
 
-    doc.save(`Recruitment_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-  };
+  doc.save(`Recruitment_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+};
 
   // =============================================
   // EXPORT TO EXCEL
@@ -685,7 +753,77 @@ h3 svg {
             </div>
           </div>
         </div>
+
+
+{/* Top Applied Positions */}
+<div className="dashboard-grid">
+  <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+    <div className="card-header">
+      <h3>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: '#4F46E5' }}>
+  <rect x="3" y="14" width="4" height="7" rx="1" fill="currentColor" opacity="0.4"/>
+  <rect x="10" y="10" width="4" height="11" rx="1" fill="currentColor" opacity="0.7"/>
+  <rect x="17" y="6" width="4" height="15" rx="1" fill="currentColor"/>
+</svg>Top Applied Positions
+      </h3>
+    </div>
+    <div className="card-body">
+      {topPositions.length === 0 ? (
+        <p style={{
+          textAlign: 'center',
+          color: '#6c757d',
+          fontSize: '13px',
+          padding: '20px 0'
+        }}>
+          No applications yet
+        </p>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          {topPositions.map((item, i) => {
+            const maxCount = topPositions[0].count;
+            const colors = ['#4F46E5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'];
+            return (
+              <div key={item.title}>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  marginBottom: '6px',
+                  fontSize: '13px',
+                  color: '#1a1f36'
+                }}>
+                  <span style={{ fontWeight: 500 }}>{item.title}</span>
+                  <span style={{ fontWeight: 600, color: colors[i] }}>
+                    {item.count}
+                  </span>
+                </div>
+                <div style={{
+                  width: '100%',
+                  height: '8px',
+                  background: '#f0f0f0',
+                  borderRadius: '4px',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    width: `${(item.count / maxCount) * 100}%`,
+                    height: '100%',
+                    background: colors[i],
+                    borderRadius: '4px',
+                    transition: 'width 0.4s ease'
+                  }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  </div>
+</div>
+
       </div>
+
+
+
     </>
   );
 }
