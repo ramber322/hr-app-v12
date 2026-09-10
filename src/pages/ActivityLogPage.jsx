@@ -4,7 +4,7 @@ import Navbar from "../components/Navbar";
 import { supabase } from "../lib/supabase";
 import "../styles/ActivityLogPage.css";
 import activitylogLogo from '../assets/activitylog-new-icon.png';
-import { BriefcaseActivityLogIcon, UpdatedPencilActivityLogIcon, MailActivityLogIcon, UserAddActivityLogIcon } from "../components/icons/CustomIcons";
+import { BriefcaseActivityLogIcon, SyncIcon, UpdatedPencilActivityLogIcon, MailActivityLogIcon, UserAddActivityLogIcon } from "../components/icons/CustomIcons";
 import Loader from '../components/Loader';
 
 export default function ActivityLogPage() {
@@ -144,13 +144,12 @@ export default function ActivityLogPage() {
     };
     return colors[type] || '#6c757d';
   };
-
   const getActionIcon = (type) => {
     const icons = {
         job_created: <BriefcaseActivityLogIcon size={18} color="#2e9a55" />,
-      job_updated: '✏️',
+      job_updated: <UpdatedPencilActivityLogIcon size={18} color="#4F46E5" />,
       application_submitted: <MailActivityLogIcon size={18} style={{ color: '#1a56db' }} />,
-      status_update: <UpdatedPencilActivityLogIcon size={18} color="#968309" />,
+      status_update: <SyncIcon size={18} color="#968309" />,
       user_registered: <UserAddActivityLogIcon size={18} style={{ color: '#1a56db' }} />,
     };
     return icons[type] || '📋';
