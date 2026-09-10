@@ -154,6 +154,94 @@ const handleBulkSMS = async () => {
   }
 };
 
+//single sms
+const [showSingleSMSModal, setShowSingleSMSModal] = useState(false);
+const [singleSMSApplicant, setSingleSMSApplicant] = useState(null);
+const [singleSMSTemplate, setSingleSMSTemplate] = useState('');
+const [sendingSingleSMS, setSendingSingleSMS] = useState(false);
+const [singleSMSError, setSingleSMSError] = useState(null);
+const [singleSMSSuccessMessage, setSingleSMSSuccessMessage] = useState(null);
+
+
+const openSingleSMSModal = (interview) => {
+  if (!interview) return;
+  
+  if (!interview.scheduled_date) {
+    alert('This applicant does not have a scheduled interview yet.');
+    return;
+  }
+  
+  const jobTitle = job?.position_title || 'the position';
+  
+  setSingleSMSApplicant(interview);
+  setSingleSMSTemplate(
+    `Hi {Name}! You have a scheduled appointment interview on {Date} at {Time} for ${jobTitle}. For more info, please read your email inbox.`
+  );
+  setSingleSMSError(null);
+  setShowSingleSMSModal(true);
+};
+
+
+const handleSingleSMS = async () => {
+  if (!singleSMSApplicant) return;
+  
+  setSendingSingleSMS(true);
+  setSingleSMSError(null);
+  
+  try {
+    const phone = getApplicantPhone(singleSMSApplicant);
+    const name = getApplicantName(singleSMSApplicant);
+    
+    if (!phone || phone === 'N/A' || phone === 'No phone') {
+      setSingleSMSError(`No phone number available for ${name}.`);
+      setSendingSingleSMS(false);
+      return;
+    }
+    
+    const formatted = formatPhoneNumber(phone);
+    
+    if (!isValidPhilippineNumber(formatted)) {
+      setSingleSMSError(`Invalid phone number: ${phone}. Must start with 09 and be 11 digits.`);
+      setSendingSingleSMS(false);
+      return;
+    }
+    
+    const date = formatDate(singleSMSApplicant.scheduled_date);
+    const time = formatTime(singleSMSApplicant.scheduled_date);
+    const firstName = name.split(' ')[0];
+    
+    const personalizedMessage = singleSMSTemplate
+      .replace(/\{Name\}/g, firstName)
+      .replace(/\{Date\}/g, date)
+      .replace(/\{Time\}/g, time);
+    
+    const result = await sendSMS(formatted, personalizedMessage);
+    
+    if (!result.success) {
+      setSingleSMSError(result.error || 'Failed to send SMS.');
+      setSendingSingleSMS(false);
+      return;
+    }
+    
+    setShowSingleSMSModal(false);
+    setSingleSMSApplicant(null);
+    
+    setSingleSMSSuccessMessage(` SMS sent to ${name} successfully!`);
+    setTimeout(() => setSingleSMSSuccessMessage(null), 5000);
+    
+  } catch (error) {
+    console.error('Error sending single SMS:', error);
+    setSingleSMSError('Error sending SMS: ' + error.message);
+  } finally {
+    setSendingSingleSMS(false);
+  }
+};
+
+
+//end single sms
+
+
+
 //END SMS AREA
 
 const [bulkSuccessMessage, setBulkSuccessMessage] = useState(null);
@@ -1423,9 +1511,7 @@ const confirmActionHandler = async () => {
 
 {/* SMS Modal */}
 {showSMSModal && (
-  <div className="modal-overlay" onClick={() => {
-    if (!sendingSMS) setShowSMSModal(false);
-  }}>
+  <div className="modal-overlay">
     <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '550px' }}>
       <div className="modal-header">
         <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -1538,8 +1624,15 @@ const confirmActionHandler = async () => {
               alignItems: 'center',
               justifyContent: 'center',
               gap: '8px',
-              opacity: sendingSMS ? 0.7 : 1
+              opacity: sendingSMS ? 0.7 : 1,
+              transition: 'background 0.2s ease'
             }}
+            onMouseEnter={(e) => {
+  if (!sendingSMS) e.currentTarget.style.background = '#4338ca';
+}}
+onMouseLeave={(e) => {
+  if (!sendingSMS) e.currentTarget.style.background = '#4F46E5';
+}}
           >
             {sendingSMS ? (
               <>
@@ -2042,11 +2135,237 @@ const confirmActionHandler = async () => {
                 >
                   Close
                 </button>
+                  <button 
+    className="btn-primary"
+    onClick={() => {
+      setShowProfileModal(false);
+      openSingleSMSModal(selectedApplicant);
+    }}
+    style={{
+      background: '#4F46E5',
+      color: 'white',
+      border: 'none',
+      borderRadius: '8px',
+      padding: '10px 20px',
+      cursor: 'pointer',
+      fontWeight: '600',
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '8px',
+      transition: 'background 0.2s ease'
+    }}
+    onMouseEnter={(e) => e.currentTarget.style.background = '#4338ca'}
+    onMouseLeave={(e) => e.currentTarget.style.background = '#4F46E5'}
+  >
+    <TextBubbleIcon size={16} color="white" style = {{marginLeft: '48px'}} />
+    Send SMS
+  </button>
               </div>
             </div>
           </div>
         </div>
       )}
+
+
+
+
+
+{/* Single SMS Modal */}
+{showSingleSMSModal && singleSMSApplicant && (
+  <div className="modal-overlay">
+    <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+      <div className="modal-header">
+        <h3 style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <TextBubbleIcon size={22} color="#1a3a5c" />
+          Send SMS
+        </h3>
+        <button 
+          className="close-modal" 
+          onClick={() => setShowSingleSMSModal(false)}
+          disabled={sendingSingleSMS}
+        >
+          ×
+        </button>
+      </div>
+      <div className="modal-body">
+        {/* Recipient info */}
+        <div style={{
+          background: '#f8f9fa',
+          padding: '12px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          fontSize: '13px'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <strong>To:</strong>
+            <span>{getApplicantName(singleSMSApplicant)}</span>
+          </div>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            fontFamily: 'monospace',
+            color: isValidPhilippineNumber(formatPhoneNumber(getApplicantPhone(singleSMSApplicant))) 
+              ? '#2E7D32' 
+              : '#dc2626'
+          }}>
+            <strong style={{ fontFamily: 'inherit' }}>Phone:</strong>
+            <span>
+              {isValidPhilippineNumber(formatPhoneNumber(getApplicantPhone(singleSMSApplicant))) ? '✓ ' : '✗ '}
+              {formatPhoneNumber(getApplicantPhone(singleSMSApplicant)) || 'No phone'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', color: '#6c757d' }}>
+            <strong>Schedule:</strong>
+            <span>
+              {formatDate(singleSMSApplicant.scheduled_date)} at {formatTime(singleSMSApplicant.scheduled_date)}
+            </span>
+          </div>
+        </div>
+
+        {/* Message */}
+        <div className="form-group">
+          <label>Message *</label>
+          <textarea
+            value={singleSMSTemplate}
+            onChange={(e) => setSingleSMSTemplate(e.target.value)}
+            rows="5"
+            className="form-textarea"
+            disabled={sendingSingleSMS}
+          />
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#6c757d', 
+            marginTop: '4px',
+            display: 'flex',
+            justifyContent: 'space-between'
+          }}>
+            <span>💡 Use <code>{'{Name}'}</code>, <code>{'{Date}'}</code>, <code>{'{Time}'}</code></span>
+            <span>{singleSMSTemplate.length} chars</span>
+          </div>
+        </div>
+
+        {/* Preview */}
+        <div style={{
+          marginTop: '16px',
+          padding: '12px',
+          background: '#eff6ff',
+          border: '1px solid #bfdbfe',
+          borderRadius: '6px',
+          fontSize: '13px'
+        }}>
+          <strong style={{ display: 'block', marginBottom: '8px', color: '#1e40af' }}>
+             Preview:
+          </strong>
+          <div style={{
+            padding: '8px 10px',
+            background: 'white',
+            borderRadius: '4px',
+            borderLeft: '3px solid #3b82f6',
+            color: '#374151',
+            fontSize: '12px',
+            lineHeight: '1.4'
+          }}>
+            {singleSMSTemplate
+              .replace(/\{Name\}/g, getApplicantName(singleSMSApplicant).split(' ')[0])
+              .replace(/\{Date\}/g, formatDate(singleSMSApplicant.scheduled_date))
+              .replace(/\{Time\}/g, formatTime(singleSMSApplicant.scheduled_date))}
+          </div>
+        </div>
+
+        {/* Error */}
+        {singleSMSError && (
+          <div style={{
+            background: '#fee2e2',
+            color: '#dc2626',
+            padding: '10px 12px',
+            borderRadius: '6px',
+            fontSize: '13px',
+            marginTop: '12px'
+          }}>
+            ⚠️ {singleSMSError}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="modal-actions">
+          <button 
+            className="btn-secondary"
+            onClick={() => setShowSingleSMSModal(false)}
+            disabled={sendingSingleSMS}
+          >
+            Cancel
+          </button>
+          <button 
+            className="btn-primary"
+            onClick={handleSingleSMS}
+            disabled={!singleSMSTemplate.trim() || sendingSingleSMS}
+            style={{
+              background: sendingSingleSMS ? '#4338ca' : '#4F46E5',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: sendingSingleSMS ? 'not-allowed' : 'pointer',
+              fontWeight: '600',
+              padding: '10px 20px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              opacity: sendingSingleSMS ? 0.7 : 1,
+              minWidth: '150px',
+              transition: 'background 0.2s ease'
+            }}
+            onMouseEnter={(e) => {
+              if (!sendingSingleSMS) e.currentTarget.style.background = '#4338ca';
+            }}
+            onMouseLeave={(e) => {
+              if (!sendingSingleSMS) e.currentTarget.style.background = '#4F46E5';
+            }}
+          >
+            {sendingSingleSMS ? (
+              <>
+                <span className="spinner" />
+                Sending...
+              </>
+            ) : (
+              <>
+                <TextBubbleIcon size={16} color="white" />
+                Send SMS
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+)}
+
+
+{/* Single SMS Success Notification */}
+{singleSMSSuccessMessage && (
+  <div style={{
+    position: 'fixed',
+    bottom: '20px',
+    right: '20px',
+    padding: '12px 20px',
+    background: '#0D9488',
+    color: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    zIndex: 9999,
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    animation: 'slideIn 0.3s ease'
+  }}>
+    <CircularCheckSuccessIcon size={18} style={{ color: 'white' }} />
+    <span>{singleSMSSuccessMessage}</span>
+  </div>
+)}
+
+
+
+
 
     {/* Confirm Modal - Lightweight */}
 {showConfirmModal && (
