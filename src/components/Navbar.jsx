@@ -129,7 +129,7 @@ function Navbar({ userRole = 'applicant' }) {
       <div className="navbar-container">
         <div className="logo" onClick={() => navigate(currentUserRole === 'hr' ? '/hr/dashboard' : '/applicant/dashboard')}>
          <img src={chrmoLogo} alt="CHRMO" className="navbar-logo-image" />
-          <span className="logo-text">HR Portal</span>
+          <span className="logo-text">CHRMO Portal</span>
         </div>
 
         <button className="mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>

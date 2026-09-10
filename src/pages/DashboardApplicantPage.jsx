@@ -7,6 +7,7 @@ import locationLogo from '../assets/icon-location.png';
 import '/src/styles/DashboardApplicantPage.css';
 import mailBlackLogo from '../assets/mail-blue-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
+import podcastLogo from '../assets/podcast-icon.png';
 import interviewBlueLogo from '../assets/interview-blue-icon.png';
 
 
@@ -573,11 +574,11 @@ export default function DashboardApplicant() {
     marginBottom: '12px'
   }}>
     <img 
-      src={interviewBlueLogo} 
+      src={podcastLogo} 
       alt="interview" 
       style={{ 
-        width: 28, 
-        height: 28,
+        width: 30, 
+        height: 30,
         color: '#0D9488',
         filter: 'brightness(0) saturate(100%) invert(40%) sepia(60%) saturate(800%) hue-rotate(160deg) brightness(95%) contrast(90%)'
       }} 
