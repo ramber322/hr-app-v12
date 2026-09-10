@@ -8,7 +8,6 @@ import '/src/styles/DashboardApplicantPage.css';
 import mailBlackLogo from '../assets/mail-blue-icon.png';
 import calendarminimalLogo from '../assets/calendar-minimal-icon.png';
 import podcastLogo from '../assets/podcast-icon.png';
-import interviewBlueLogo from '../assets/interview-blue-icon.png';
 
 
 import WeatherWidget from "../components/WeatherWidget";
@@ -522,7 +521,7 @@ export default function DashboardApplicant() {
           </h1>
           <div className="date-display">
             <span style={{ fontSize: '15px', opacity: '0.5', display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
-              Explore your dashboard to unlock powerful tools tailored for your goals.
+              Explore your dashboard and get started.
             </span>
           </div>
         </div>
