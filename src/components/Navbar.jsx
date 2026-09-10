@@ -181,7 +181,18 @@ function Navbar({ userRole = 'applicant' }) {
               <div className="dropdown-menu">
                 <div className="dropdown-header">
                   <div className="dropdown-name">{userName || 'User'}</div>
-                  <div className="dropdown-email">{userEmail || 'user@email.com'}</div>
+                <div 
+  className="dropdown-email"
+  style={{
+    width: '150px',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    }}
+  title={userEmail || 'user@email.com'}
+>
+  {userEmail || 'user@email.com'}
+</div>
                   <div className="dropdown-role">
                     {currentUserRole === 'hr' ? 'HR Personnel' : 'Job Applicant'}
                   </div>

@@ -686,7 +686,7 @@ export default function BrowseJobsPage() {
               onClick={() => {
                 setShowSuccessPopup(false);
                 navigate('/applicant/applications');
-              }}
+              }}   style={{ fontSize: '13px' }}
             >
                View My Applications
             </button>
