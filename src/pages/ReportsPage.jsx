@@ -7,7 +7,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import "../styles/ReportsPage.css";
- import Loader from '../components/Loader';
+import Loader from '../components/Loader';
 
 import { ReportsChartIcon, ReportsIcon, EnterpriseIcon, PdfIcon, ExcelIcon, PieChartIcon } from "../components/icons/CustomIcons";
 
@@ -55,6 +55,9 @@ export default function ReportsPage() {
   });
   const [selectedDepartment, setSelectedDepartment] = useState('All');
   const [departments, setDepartments] = useState([]);
+
+  // 🆕 Report Type State
+  const [selectedReportType, setSelectedReportType] = useState('full');
 
   useEffect(() => {
     loadReports();
@@ -140,19 +143,19 @@ export default function ReportsPage() {
         }
       });
 
-// 5.5 Top Applied Positions
-const positionCount = {};
-applications.forEach(app => {
-  const title = app.job_postings?.position_title || 'Unknown';
-  positionCount[title] = (positionCount[title] || 0) + 1;
-});
+      // 5.5 Top Applied Positions
+      const positionCount = {};
+      applications.forEach(app => {
+        const title = app.job_postings?.position_title || 'Unknown';
+        positionCount[title] = (positionCount[title] || 0) + 1;
+      });
 
-const topPositionsData = Object.entries(positionCount)
-  .sort((a, b) => b[1] - a[1])
-  .slice(0, 5)
-  .map(([title, count]) => ({ title, count }));
+      const topPositionsData = Object.entries(positionCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([title, count]) => ({ title, count }));
 
-setTopPositions(topPositionsData);
+      setTopPositions(topPositionsData);
 
       // 6. Get unique departments for filter
       const uniqueDepts = [...new Set(applications.map(app => app.job_postings?.place_of_assignment).filter(Boolean))];
@@ -179,152 +182,182 @@ setTopPositions(topPositionsData);
   };
 
   // =============================================
+  // 🆕 REPORT TYPE CONFIG
+  // =============================================
+  const reportTitles = {
+    full: 'RECRUITMENT REPORT',
+    applications: 'APPLICATIONS SUMMARY',
+    hiring: 'HIRING SUMMARY',
+    departments: 'DEPARTMENT BREAKDOWN',
+    positions: 'TOP APPLIED POSITIONS',
+  };
+
+  // =============================================
   // EXPORT TO PDF
   // =============================================
   const exportPDF = async () => {
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
 
-  // 🆕 Seal (top-right)
-  try {
-    const response = await fetch(chrmoSeal);
-    const blob = await response.blob();
-    const base64 = await new Promise((resolve) => {
-      const reader = new FileReader();
-      reader.onloadend = () => resolve(reader.result);
-      reader.readAsDataURL(blob);
-    });
+    // Seal (top-right)
+    try {
+      const response = await fetch(chrmoSeal);
+      const blob = await response.blob();
+      const base64 = await new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
 
-    const sealSize = 22;
-    const sealX = pageWidth - margin - sealSize; // right-aligned
-    doc.addImage(base64, 'PNG', sealX, 12, sealSize, sealSize);
-  } catch (err) {
-    console.warn('Seal failed to load:', err);
-  }
+      const sealSize = 22;
+      const sealX = pageWidth - margin - sealSize;
+      doc.addImage(base64, 'PNG', sealX, 12, sealSize, sealSize);
+    } catch (err) {
+      console.warn('Seal failed to load:', err);
+    }
 
-  // Header
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 25, { align: 'center' });
-  
-  doc.setFontSize(12);
-  doc.setFont('helvetica', 'normal');
-  doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 33, { align: 'center' });
+    // Header
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CITY GOVERNMENT OF ILIGAN', pageWidth / 2, 25, { align: 'center' });
 
-  doc.setDrawColor(100);
-  doc.line(margin, 38, pageWidth - margin, 38);
-
-  // Title
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.text('RECRUITMENT REPORT', pageWidth / 2, 48, { align: 'center' });
-
-  const today = new Date().toLocaleDateString('en-US', { 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
-
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.text(`Date Generated: ${today}`, margin, 60);
-
-  // Summary Stats
-  const statsData = [
-    ['Total Jobs', reports.totalJobs],
-    ['Total Applications', reports.totalApplications],
-    ['Total Hired', reports.totalHired],
-    ['Open Jobs', reports.openJobs],
-  ];
-
-  autoTable(doc, {
-    startY: 68,
-    head: [['Metric', 'Value']],
-    body: statsData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [43, 108, 176],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-    },
-    margin: { left: margin, right: margin },
-  });
-
-  // Status Breakdown
-  const statusData = Object.entries(reports.statusBreakdown).map(([status, count]) => [
-    status,
-    count,
-  ]);
-
-  autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 10,
-    head: [['Status', 'Count']],
-    body: statusData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [43, 108, 176],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-    },
-    margin: { left: margin, right: margin },
-  });
-
-  // Department Breakdown
-  const deptData = reports.applicationsByDepartment.map(d => [
-    d.department,
-    d.count,
-  ]);
-
-  autoTable(doc, {
-    startY: doc.lastAutoTable.finalY + 10,
-    head: [['Department', 'Applications']],
-    body: deptData,
-    theme: 'striped',
-    headStyles: {
-      fillColor: [43, 108, 176],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-    },
-    margin: { left: margin, right: margin },
-  });
-
-  // Top Applied Positions
-  if (topPositions.length > 0) {
-    const posData = topPositions.map(p => [p.title, p.count]);
-    autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 10,
-      head: [['Top Position', 'Applications']],
-      body: posData,
-      theme: 'striped',
-      headStyles: {
-        fillColor: [43, 108, 176],
-        textColor: [255, 255, 255],
-        fontStyle: 'bold',
-      },
-      margin: { left: margin, right: margin },
-    });
-  }
-
-  // 🆕 Footer: page numbers only
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    const pageHeight = doc.internal.pageSize.getHeight();
-
-    doc.setFontSize(9);
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.setTextColor(150);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      pageWidth / 2,
-      pageHeight - 10,
-      { align: 'center' }
-    );
-  }
+    doc.text('HUMAN RESOURCE MANAGEMENT OFFICE', pageWidth / 2, 33, { align: 'center' });
 
-  doc.save(`Recruitment_Report_${new Date().toISOString().split('T')[0]}.pdf`);
-};
+    doc.setDrawColor(100);
+    doc.line(margin, 38, pageWidth - margin, 38);
+
+    // Title (dynamic based on report type)
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text(reportTitles[selectedReportType] || 'RECRUITMENT REPORT', pageWidth / 2, 48, { align: 'center' });
+
+    const today = new Date().toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Date Generated: ${today}`, margin, 60);
+
+    // Section flags based on selected report type
+    const includeStats = ['full', 'applications', 'hiring'].includes(selectedReportType);
+    const includeStatus = ['full', 'applications'].includes(selectedReportType);
+    const includeDept = ['full', 'departments'].includes(selectedReportType);
+    const includeTop = ['full', 'positions'].includes(selectedReportType);
+
+    let currentY = 68;
+
+    // Summary Stats
+    if (includeStats) {
+      const statsData = [
+        ['Total Jobs', reports.totalJobs],
+        ['Total Applications', reports.totalApplications],
+        ['Total Hired', reports.totalHired],
+        ['Open Jobs', reports.openJobs],
+      ];
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Metric', 'Value']],
+        body: statsData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [43, 108, 176],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        margin: { left: margin, right: margin },
+      });
+      currentY = doc.lastAutoTable.finalY + 10;
+    }
+
+    // Status Breakdown
+    if (includeStatus) {
+      const statusData = Object.entries(reports.statusBreakdown).map(([status, count]) => [
+        status,
+        count,
+      ]);
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Status', 'Count']],
+        body: statusData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [43, 108, 176],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        margin: { left: margin, right: margin },
+      });
+      currentY = doc.lastAutoTable.finalY + 10;
+    }
+
+    // Department Breakdown
+    if (includeDept) {
+      const deptData = reports.applicationsByDepartment.map(d => [
+        d.department,
+        d.count,
+      ]);
+
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Department', 'Applications']],
+        body: deptData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [43, 108, 176],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        margin: { left: margin, right: margin },
+      });
+      currentY = doc.lastAutoTable.finalY + 10;
+    }
+
+    // Top Applied Positions
+    if (includeTop && topPositions.length > 0) {
+      const posData = topPositions.map(p => [p.title, p.count]);
+      autoTable(doc, {
+        startY: currentY,
+        head: [['Top Position', 'Applications']],
+        body: posData,
+        theme: 'striped',
+        headStyles: {
+          fillColor: [43, 108, 176],
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+        },
+        margin: { left: margin, right: margin },
+      });
+    }
+
+    // Footer: page numbers
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      const pageHeight = doc.internal.pageSize.getHeight();
+
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(150);
+      doc.text(
+        `Page ${i} of ${pageCount}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: 'center' }
+      );
+    }
+
+    // Dynamic filename based on report type
+    const fileTitle = reportTitles[selectedReportType]?.replace(/ /g, '_') || 'Recruitment_Report';
+    doc.save(`${fileTitle}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
 
   // =============================================
   // EXPORT TO EXCEL
@@ -332,47 +365,79 @@ setTopPositions(topPositionsData);
   const exportExcel = () => {
     const wb = XLSX.utils.book_new();
 
+    // Section flags based on selected report type
+    const includeStats = ['full', 'applications', 'hiring'].includes(selectedReportType);
+    const includeStatus = ['full', 'applications'].includes(selectedReportType);
+    const includeDept = ['full', 'departments'].includes(selectedReportType);
+    const includeTop = ['full', 'positions'].includes(selectedReportType);
+    const includeMonthly = ['full', 'applications'].includes(selectedReportType);
+
     // Summary Sheet
-    const summaryData = [
-      ['Metric', 'Value'],
-      ['Total Jobs', reports.totalJobs],
-      ['Total Applications', reports.totalApplications],
-      ['Total Hired', reports.totalHired],
-      ['Open Jobs', reports.openJobs],
-      [''],
-      ['Status Breakdown'],
-      ['Status', 'Count'],
-    ];
+    if (includeStats || includeStatus || includeDept) {
+      const summaryData = [];
 
-    Object.entries(reports.statusBreakdown).forEach(([status, count]) => {
-      summaryData.push([status, count]);
-    });
+      if (includeStats) {
+        summaryData.push(['Metric', 'Value']);
+        summaryData.push(['Total Jobs', reports.totalJobs]);
+        summaryData.push(['Total Applications', reports.totalApplications]);
+        summaryData.push(['Total Hired', reports.totalHired]);
+        summaryData.push(['Open Jobs', reports.openJobs]);
+        summaryData.push(['']);
+      }
 
-    summaryData.push(['']);
-    summaryData.push(['Department Breakdown']);
-    summaryData.push(['Department', 'Applications']);
+      if (includeStatus) {
+        summaryData.push(['Status Breakdown']);
+        summaryData.push(['Status', 'Count']);
+        Object.entries(reports.statusBreakdown).forEach(([status, count]) => {
+          summaryData.push([status, count]);
+        });
+        summaryData.push(['']);
+      }
 
-    reports.applicationsByDepartment.forEach(d => {
-      summaryData.push([d.department, d.count]);
-    });
+      if (includeDept) {
+        summaryData.push(['Department Breakdown']);
+        summaryData.push(['Department', 'Applications']);
+        reports.applicationsByDepartment.forEach(d => {
+          summaryData.push([d.department, d.count]);
+        });
+      }
 
-    const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
-    ws1['!cols'] = [{ wch: 30 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+      const ws1 = XLSX.utils.aoa_to_sheet(summaryData);
+      ws1['!cols'] = [{ wch: 30 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
+    }
 
     // Monthly Applications Sheet
-    const monthData = [
-      ['Month', 'Applications'],
-    ];
-    reports.applicationsByMonth.forEach(d => {
-      monthData.push([d.month, d.count]);
-    });
+    if (includeMonthly) {
+      const monthData = [
+        ['Month', 'Applications'],
+      ];
+      reports.applicationsByMonth.forEach(d => {
+        monthData.push([d.month, d.count]);
+      });
 
-    const ws2 = XLSX.utils.aoa_to_sheet(monthData);
-    ws2['!cols'] = [{ wch: 20 }, { wch: 15 }];
-    XLSX.utils.book_append_sheet(wb, ws2, 'Monthly Applications');
+      const ws2 = XLSX.utils.aoa_to_sheet(monthData);
+      ws2['!cols'] = [{ wch: 20 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws2, 'Monthly Applications');
+    }
 
-    XLSX.writeFile(wb, `Recruitment_Report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    // Top Positions Sheet
+    if (includeTop && topPositions.length > 0) {
+      const posData = [
+        ['Position', 'Applications'],
+      ];
+      topPositions.forEach(p => {
+        posData.push([p.title, p.count]);
+      });
+
+      const ws3 = XLSX.utils.aoa_to_sheet(posData);
+      ws3['!cols'] = [{ wch: 35 }, { wch: 15 }];
+      XLSX.utils.book_append_sheet(wb, ws3, 'Top Positions');
+    }
+
+    // Dynamic filename based on report type
+    const fileTitle = reportTitles[selectedReportType]?.replace(/ /g, '_') || 'Recruitment_Report';
+    XLSX.writeFile(wb, `${fileTitle}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   // Chart Data - Monthly Applications
@@ -420,24 +485,24 @@ setTopPositions(topPositionsData);
   const statusLabels = Object.keys(reports.statusBreakdown);
   const statusCounts = Object.values(reports.statusBreakdown);
 
-const statusChartData = {
-  labels: statusLabels.length > 0 ? statusLabels : ['No Data'],
-  datasets: [
-    {
-      data: statusCounts.length > 0 ? statusCounts : [1],
-     backgroundColor: [
-  '#f59e0b',  // Pending - Amber
-  '#3b82f6',  // Reviewing - Blue
-  '#0d9488',  // Shortlisted - Teal
-  '#dc2626',  // Qualified - Green
-  '#8b5cf6',  // Interview - Purple
-  '#1a3a5c',  // Hired - Navy
-  '#dc2626',  // Rejected - Red
-],
-      borderWidth: 0,
-    },
-  ],
-};
+  const statusChartData = {
+    labels: statusLabels.length > 0 ? statusLabels : ['No Data'],
+    datasets: [
+      {
+        data: statusCounts.length > 0 ? statusCounts : [1],
+        backgroundColor: [
+          '#f59e0b',  // Pending - Amber
+          '#3b82f6',  // Reviewing - Blue
+          '#0d9488',  // Shortlisted - Teal
+          '#dc2626',  // Qualified - Green
+          '#8b5cf6',  // Interview - Purple
+          '#1a3a5c',  // Hired - Navy
+          '#dc2626',  // Rejected - Red
+        ],
+        borderWidth: 0,
+      },
+    ],
+  };
 
   const statusOptions = {
     responsive: true,
@@ -447,9 +512,9 @@ const statusChartData = {
         position: 'bottom',
         labels: {
           usePointStyle: false,
-          boxWidth: 12,             
-        boxHeight: 12,           
-        padding: 15,        
+          boxWidth: 12,
+          boxHeight: 12,
+          padding: 15,
         },
       },
     },
@@ -460,19 +525,19 @@ const statusChartData = {
   const deptLabels = reports.applicationsByDepartment.slice(0, 8).map(d => d.department);
   const deptCounts = reports.applicationsByDepartment.slice(0, 8).map(d => d.count);
 
-const deptChartData = {
-  labels: deptLabels.length > 0 ? deptLabels : ['No Data'],
-  datasets: [
-    {
-      label: 'Applications',
-      data: deptCounts.length > 0 ? deptCounts : [0],
-      backgroundColor: 'rgba(13, 148, 136, 0.7)',
-borderColor: 'rgba(13, 148, 136, 1)',
-      borderWidth: 1,
-      borderRadius: 4,
-    },
-  ],
-};
+  const deptChartData = {
+    labels: deptLabels.length > 0 ? deptLabels : ['No Data'],
+    datasets: [
+      {
+        label: 'Applications',
+        data: deptCounts.length > 0 ? deptCounts : [0],
+        backgroundColor: 'rgba(13, 148, 136, 0.7)',
+        borderColor: 'rgba(13, 148, 136, 1)',
+        borderWidth: 1,
+        borderRadius: 4,
+      },
+    ],
+  };
 
   const deptOptions = {
     responsive: true,
@@ -529,6 +594,7 @@ borderColor: 'rgba(13, 148, 136, 1)',
       gap: 12px;
       margin-top: 12px;
       flex-wrap: wrap;
+      align-items: center;
     }
 
     .export-btn {
@@ -557,6 +623,32 @@ borderColor: 'rgba(13, 148, 136, 1)',
     .export-btn.excel {
       background: #10b981;
       color: white;
+    }
+
+    /* 🆕 Report Type Dropdown */
+   .report-type-select {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1f36;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.2s ease;
+  min-width: 220px;
+  margin-left: auto;   /* ← pushes dropdown to the right */
+}
+
+    .report-type-select:hover {
+      border-color: #4F46E5;
+    }
+
+    .report-type-select:focus {
+      outline: none;
+      border-color: #4F46E5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
     }
 
     .stats-grid {
@@ -621,11 +713,13 @@ borderColor: 'rgba(13, 148, 136, 1)',
       height: 250px;
       position: relative;
     }
-.icon-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
+
+    .icon-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .loading-state {
       text-align: center;
       padding: 60px;
@@ -637,22 +731,24 @@ borderColor: 'rgba(13, 148, 136, 1)',
         grid-template-columns: repeat(2, 1fr);
       }
     }
-      h3 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
 
-h3 svg {
-  flex-shrink: 0;
-}
+    h3 {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h3 svg {
+      flex-shrink: 0;
+    }
 
     @media (max-width: 768px) {
       .reports-container { padding: 16px; padding-top: 80px; }
       .stats-grid { grid-template-columns: repeat(2, 1fr); }
       .dashboard-grid { grid-template-columns: 1fr; }
-      .export-buttons { flex-direction: column; }
+      .export-buttons { flex-direction: column; align-items: stretch; }
       .export-btn { justify-content: center; }
+      .report-type-select { width: 100%; min-width: 0; }
     }
   `;
 
@@ -662,8 +758,8 @@ h3 svg {
         <Navbar userRole="hr" />
         <div className="reports-container">
           <style>{styles}</style>
-          <Loader/>
-          
+          <Loader />
+
           <div className="loading-state">Loading reports...</div>
         </div>
       </>
@@ -677,19 +773,54 @@ h3 svg {
         <style>{styles}</style>
 
         <div className="page-header" >
-         <h1 className="icon-title">
-        <span style = {{ filter: 'brightness(0) saturate(100%) invert(25%) sepia(50%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)'}}>
-  <ReportsIcon size={28} color= '#1e293b'  /> </span>
-  Reports
-</h1>
+          <h1 className="icon-title">
+            <span style={{ filter: 'brightness(0) saturate(100%) invert(25%) sepia(50%) saturate(800%) hue-rotate(180deg) brightness(95%) contrast(90%)' }}>
+              <ReportsIcon size={28} color='#1e293b' /> </span>
+            Reports
+          </h1>
           <p>Generate and export recruitment reports</p>
           <div className="export-buttons">
+          
+
             <button className="export-btn pdf" onClick={exportPDF}>
-              <PdfIcon size={23}/> Export as PDF
+              <PdfIcon size={23} /> Export as PDF
             </button>
             <button className="export-btn excel" onClick={exportExcel}>
-              <ExcelIcon size={23}/> Export as Excel
+              <ExcelIcon size={23} /> Export as Excel
             </button>
+{/* Report Type — label above, right-aligned */}
+  <div style={{ 
+    display: 'flex', 
+    flexDirection: 'column', 
+    gap: '4px', 
+    marginLeft: 'auto' ,
+      alignItems: 'center'
+  }}>
+    <label 
+      htmlFor="report-type"
+      style={{ 
+        fontSize: '12px', 
+        fontWeight: '500', 
+        color: '#6c757d',
+        letterSpacing: '0.3px'
+        
+      }}
+    >
+      Select Report Type to Export
+    </label>
+    <select
+      id="report-type"
+      className="report-type-select"
+      value={selectedReportType}
+      onChange={(e) => setSelectedReportType(e.target.value)}
+    >
+      <option value="full">Full Recruitment Report</option>
+      <option value="applications">Applications Summary</option>
+      <option value="hiring">Hiring Summary</option>
+      <option value="departments">Department Breakdown</option>
+      <option value="positions">Top Applied Positions</option>
+    </select>
+  </div>
           </div>
         </div>
 
@@ -718,7 +849,7 @@ h3 svg {
           {/* Monthly Applications */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3><ReportsChartIcon/> Applications Per Month</h3>
+              <h3><ReportsChartIcon /> Applications Per Month</h3>
             </div>
             <div className="card-body">
               <div className="chart-container">
@@ -730,7 +861,7 @@ h3 svg {
           {/* Status Breakdown */}
           <div className="dashboard-card">
             <div className="card-header">
-              <h3><PieChartIcon/> Status Breakdown</h3>
+              <h3><PieChartIcon /> Status Breakdown</h3>
             </div>
             <div className="card-body">
               <div className="chart-container">
@@ -754,76 +885,73 @@ h3 svg {
           </div>
         </div>
 
-
-{/* Top Applied Positions */}
-<div className="dashboard-grid">
-  <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
-    <div className="card-header">
-      <h3>
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: '#4F46E5' }}>
-  <rect x="3" y="14" width="4" height="7" rx="1" fill="currentColor" opacity="0.4"/>
-  <rect x="10" y="10" width="4" height="11" rx="1" fill="currentColor" opacity="0.7"/>
-  <rect x="17" y="6" width="4" height="15" rx="1" fill="currentColor"/>
-</svg>Top Applied Positions
-      </h3>
-    </div>
-    <div className="card-body">
-      {topPositions.length === 0 ? (
-        <p style={{
-          textAlign: 'center',
-          color: '#6c757d',
-          fontSize: '13px',
-          padding: '20px 0'
-        }}>
-          No applications yet
-        </p>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-          {topPositions.map((item, i) => {
-            const maxCount = topPositions[0].count;
-            const colors = ['#4F46E5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'];
-            return (
-              <div key={item.title}>
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  marginBottom: '6px',
+        {/* Top Applied Positions */}
+        <div className="dashboard-grid">
+          <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <div className="card-header">
+              <h3>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ color: '#4F46E5' }}>
+                  <rect x="3" y="14" width="4" height="7" rx="1" fill="currentColor" opacity="0.4" />
+                  <rect x="10" y="10" width="4" height="11" rx="1" fill="currentColor" opacity="0.7" />
+                  <rect x="17" y="6" width="4" height="15" rx="1" fill="currentColor" />
+                </svg>
+                Top Applied Positions
+              </h3>
+            </div>
+            <div className="card-body">
+              {topPositions.length === 0 ? (
+                <p style={{
+                  textAlign: 'center',
+                  color: '#6c757d',
                   fontSize: '13px',
-                  color: '#1a1f36'
+                  padding: '20px 0'
                 }}>
-                  <span style={{ fontWeight: 500 }}>{item.title}</span>
-                  <span style={{ fontWeight: 600, color: colors[i] }}>
-                    {item.count}
-                  </span>
+                  No applications yet
+                </p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                  {topPositions.map((item, i) => {
+                    const maxCount = topPositions[0].count;
+                    const colors = ['#4F46E5', '#6366f1', '#818cf8', '#a5b4fc', '#c7d2fe'];
+                    return (
+                      <div key={item.title}>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          marginBottom: '6px',
+                          fontSize: '13px',
+                          color: '#1a1f36'
+                        }}>
+                          <span style={{ fontWeight: 500 }}>{item.title}</span>
+                          <span style={{ fontWeight: 600, color: colors[i] }}>
+                            {item.count}
+                          </span>
+                        </div>
+                        <div style={{
+                          width: '100%',
+                          height: '8px',
+                          background: '#f0f0f0',
+                          borderRadius: '4px',
+                          overflow: 'hidden'
+                        }}>
+                          <div style={{
+                            width: `${(item.count / maxCount) * 100}%`,
+                            height: '100%',
+                            background: colors[i],
+                            borderRadius: '4px',
+                            transition: 'width 0.4s ease'
+                          }} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <div style={{
-                  width: '100%',
-                  height: '8px',
-                  background: '#f0f0f0',
-                  borderRadius: '4px',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{
-                    width: `${(item.count / maxCount) * 100}%`,
-                    height: '100%',
-                    background: colors[i],
-                    borderRadius: '4px',
-                    transition: 'width 0.4s ease'
-                  }} />
-                </div>
-              </div>
-            );
-          })}
+              )}
+            </div>
+          </div>
         </div>
-      )}
-    </div>
-  </div>
-</div>
 
       </div>
-
-
-
     </>
   );
 }
