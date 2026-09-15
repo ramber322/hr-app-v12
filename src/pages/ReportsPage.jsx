@@ -626,8 +626,8 @@ export default function ReportsPage() {
     }
 
     /* 🆕 Report Type Dropdown */
-   .report-type-select {
-  padding: 10px 16px;
+.report-type-select {
+  padding: 10px 40px 10px 16px;
   border-radius: 8px;
   border: 1px solid #e5e7eb;
   background: white;
@@ -636,9 +636,28 @@ export default function ReportsPage() {
   color: #1a1f36;
   cursor: pointer;
   font-family: inherit;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
   min-width: 220px;
-  margin-left: auto;   /* ← pushes dropdown to the right */
+
+  /* Custom chevron */
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236c757d' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 16px;
+}
+
+.report-type-select:hover {
+  border-color: #c7d2fe;
+  background-color: #fafaff;
+}
+
+.report-type-select:focus {
+  outline: none;
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
     .report-type-select:hover {
@@ -802,8 +821,8 @@ export default function ReportsPage() {
         fontSize: '12px', 
         fontWeight: '500', 
         color: '#6c757d',
-        letterSpacing: '0.3px'
-        
+        letterSpacing: '0.3px',
+        marginBottom: '2px'
       }}
     >
       Select Report Type to Export
